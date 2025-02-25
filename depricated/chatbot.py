@@ -4,7 +4,7 @@ from dotenv import load_dotenv
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langgraph.checkpoint.memory import MemorySaver
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
-from langchain_core.messages import HumanMessage, SystemMessage, trim_messages, AIMessage
+from langchain_core.messages import HumanMessage, trim_messages, AIMessage
 
 load_dotenv()
 api_key = os.getenv("API_KEY")
@@ -13,7 +13,7 @@ if not api_key:
 
 workflow = StateGraph(state_schema=MessagesState)
 llm = ChatGoogleGenerativeAI(
-    model="gemini-2.0-flash-lite-preview-02-05", google_api_key=api_key, max_output_tokens=150)
+    model="gemini-2.0-flash-lite-preview-02-05", google_api_key=api_key)
 
 trimmer = trim_messages(
     max_tokens=80,

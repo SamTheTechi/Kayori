@@ -1,4 +1,5 @@
 import os
+from spt import SpotifyTool
 from dotenv import load_dotenv
 from langchain_community.tools.tavily_search import TavilySearchResults
 from langchain_google_genai import ChatGoogleGenerativeAI
@@ -10,22 +11,25 @@ load_dotenv()
 
 os.getenv("TAVILY_API_KEY")
 memory = MemorySaver()
+
 search = TavilySearchResults(max_results=2)
+spotify = SpotifyTool()
+
 llm = ChatGoogleGenerativeAI(
     model="gemini-2.0-flash-lite-preview-02-05",
     google_api_key=os.getenv("API_KEY"),
     temperature=0.8)
 
-agent_executor = create_react_agent(llm, [search], checkpointer=memory)
+agent_executor = create_react_agent(
+    llm, [search, spotify], checkpointer=memory)
 
 config = {"configurable": {"thread_id": "abc123"}}
 
-for chunk in agent_executor.stream(
-    {"messages": [HumanMessage(content="hi im bob!")]}, config
-):
-    print(chunk)
 
-for chunk in agent_executor.stream(
-    {"messages": [HumanMessage(content="whats my name?")]}, config
-):
-    print(chunk)
+while True:
+    user_input = input("Enter a command: ")
+    if user_input.lower() == "exit":
+        break
+    message_payload = {"messages": [HumanMessage(content=user_input)]}
+    for step in agent_executor.stream(message_payload, config, stream_mode="values"):
+        step["messages"][-1].pretty_print()
