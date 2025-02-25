@@ -1,8 +1,11 @@
+import os
 import spotipy
+from dotenv import load_dotenv
 from spotipy.oauth2 import SpotifyOAuth
 from langchain_core.tools import BaseTool
 from typing import Literal, Optional
 from pydantic import PrivateAttr
+load_dotenv()
 
 
 class SpotifyTool(BaseTool):
@@ -13,9 +16,9 @@ class SpotifyTool(BaseTool):
     def __init__(self, **data):
         super().__init__(**data)
         self._sp = spotipy.Spotify(auth_manager=SpotifyOAuth(
-            client_id="82de9bd547c64030aa4ec280545d87d0",
-            client_secret="0d3207ab7b984bfe839def18f2eef02a",
-            redirect_uri="http://localhost:8888/callback",
+            client_id=os.getenv("SPOTIFY_CLIENT_ID"),
+            client_secret=os.getenv("SPOTIFY_CLIENT_SECRET"),
+            redirect_uri=os.getenv("SPOTIFY_REDIRECT"),
             scope="user-modify-playback-state,user-read-playback-state"
         ))
 
@@ -60,8 +63,9 @@ class SpotifyTool(BaseTool):
         try:
             response = self._sp.queue()
             if response and response.get("queue"):
-                return "1st queued song" + response["queue"][0]['name'] \
-                    + "2nd queued song" + response["queue"][1]['name']
+                return "1st queued " + response["queue"][0]['name'] \
+                    + "2nd queued " + response["queue"][1]['name'] \
+                    + "3nd queued " + response["queue"][2]['name']
             return "No upcoming tracks in queue."
         except Exception as e:
             return f"Error: {e}"
@@ -85,25 +89,26 @@ class SpotifyTool(BaseTool):
             command: Literal["play", "pause", "next",
                              "previous", "current",
                              "queued", "volume",
-                             "upcomming_track"],
+                             ],
             volume: Optional[int] = None
     ) -> str:
         command = command.lower().strip()
-        if command == "play":
+        if command in ["play"]:
             return self.play()
-        elif command == "pause":
+        elif command in ["pause"]:
             return self.pause()
-        elif command in ["next", "next track"]:
+        elif command in ["next"]:
             return self.next_track()
-        elif command in ["previous", "prev", "previous track"]:
+        elif command in ["previous"]:
             return self.previous_track()
         elif command in ["current"]:
             return self.current_track()
-        elif command in ["queued", "upcomming_track"]:
+        elif command in ["queued"]:
             return self.next_in_queue()
         elif command in ["volume"]:
             if volume is None:
                 return "Please provide a volume level."
             return self.set_volume(int(volume))
         else:
-            return f"Command '{command}' not recognized. Try 'play', 'pause', 'next', 'current', 'queued', 'volume' or 'previous'."
+            return f"Command '{command}' not recognized. Try 'play', 'pause',\
+            'next', 'current', 'queued', 'volume' or 'previous'."
