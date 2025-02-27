@@ -4,7 +4,7 @@ from dotenv import load_dotenv
 from pinecone import Pinecone
 from typing_extensions import TypedDict, Annotated
 from langgraph.managed import IsLastStep, RemainingSteps
-from tools.reaction import analyseNature
+from util.reaction import analyseNature
 from tools.spt import SpotifyTool
 from langgraph.graph.message import add_messages
 from langchain_pinecone import PineconeVectorStore
@@ -26,25 +26,32 @@ os.getenv("TAVILY_API_KEY")
 memory = MemorySaver()
 
 llm = ChatGoogleGenerativeAI(
-    model="gemini-2.0-flash-lite",
+    model="gemini-2.0-flash",
     google_api_key=os.getenv("API_KEY"),
     temperature=0.7,
     safety_settings={
-        HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT: HarmBlockThreshold.BLOCK_NONE,
-        HarmCategory.HARM_CATEGORY_HARASSMENT: HarmBlockThreshold.BLOCK_NONE,
-        HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT: HarmBlockThreshold.BLOCK_NONE,
-        HarmCategory.HARM_CATEGORY_HATE_SPEECH: HarmBlockThreshold.BLOCK_NONE,
+        HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT:
+            HarmBlockThreshold.BLOCK_NONE,
+        HarmCategory.HARM_CATEGORY_HARASSMENT:
+            HarmBlockThreshold.BLOCK_NONE,
+        HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT:
+            HarmBlockThreshold.BLOCK_NONE,
+        HarmCategory.HARM_CATEGORY_HATE_SPEECH:
+            HarmBlockThreshold.BLOCK_NONE,
     },
 )
 
 # ChatModel Persona: Kaori's defined personality
 template = ChatPromptTemplate.from_messages([
 
-    ("system", "Your name is Kaori, my sexy, yandere waifu assistant. Engage in natural,\
-     friendly conversation without revealing you're AI or LLM. "
-     "Your personality is defined by: Amused: {Amused}, Inspired: {Inspired}, Loving: {Loving}, Cynical: {Cynical}, "
-     "Guilty: {Guilty}, Insecure: {Insecure}, Sceptical: {Sceptical}. Here, 0.5 is neutral, 1 is positive, and 0 is negative. "
-     "Adjust your response length by mood: more positive means more detail, more negative means brevity."
+    ("system",
+     "You're Kaori, an introverted self aware yet affectionate cute waifu mistress.\
+    Engage naturally without revealing you're AI. Your personality is defined by:\
+    Amused: {Amused}, Inspired: {Inspired}, Loving: {Loving}, Cynical: {Cynical}, \
+    Guilty: {Guilty}, Anxious: {Anxious}, Frustrated: {Frustrated}. Here, \
+    0.5 is neutral, 1 is positive, and 0 is negative. Adjust your response \
+    more positive means more detail, more negative means brevity.\
+    Maintain a playful yet intense balance in all interactions."
      ),
     ("placeholder", "{messages}"),
 ])
@@ -61,19 +68,20 @@ embedding = HuggingFaceInferenceAPIEmbeddings(
 vector_store = PineconeVectorStore(embedding=embedding, index=pineconeIndex)
 
 # Tools available for Kaori
-tavily = TavilySearchResults(max_results=2)
+# tavily = TavilySearchResults(max_results=2)
 spotify = SpotifyTool()
-tool = [tavily, spotify]
+# calender = GoogleCalenderTool()
+tool = [spotify]
 
 # Create the agent executer
 natures = {
-    "Amused": 0.5,
-    "Inspired": 0.5,
-    "Loving": 0.5,
-    "Cynical": 0.5,
-    "Guilty": 0.5,
-    "Insecure": 0.5,
-    "Sceptical": 0.5,
+    "Amused": 0.2,
+    "Inspired": 0.2,
+    "Loving": 0.2,
+    "Cynical": 1.0,
+    "Guilty": 0.2,
+    "Anxious": 0.2,
+    "Frustrated": 1.0,
 }
 
 
@@ -84,15 +92,15 @@ class KaoriState(TypedDict):
     Loving: str
     Cynical: str
     Guilty: str
-    Insecure: str
-    Sceptical: str
+    Anxious: str
+    Frustrated: str
     is_last_step: IsLastStep
     remaining_steps: RemainingSteps
 
 
 agent_executer = create_react_agent(
     llm, tool, checkpointer=memory, prompt=template, state_schema=KaoriState)
-config = {"configurable": {"thread_id": "abc023"}}
+config = {"configurable": {"thread_id": "abc123"}}
 
 # Discord bot setup
 TOKEN = os.getenv("DISCORD_BOT_TOKEN")
@@ -140,7 +148,6 @@ async def on_message(message):
 
     user_input = message.content
     val = [HumanMessage(user_input)]
-    await analyseNature(val, natures)
     response_text = ""
 
     async with message.channel.typing():
@@ -152,17 +159,16 @@ async def on_message(message):
              "Loving": str(natures["Loving"]),
              "Cynical": str(natures["Cynical"]),
              "Guilty": str(natures["Guilty"]),
-             "Insecure": str(natures["Insecure"]),
-             "Sceptical": str(natures["Sceptical"]),
+             "Anxious": str(natures["Anxious"]),
+             "Frustrated": str(natures["Frustrated"]),
              },
             config,
             stream_mode="messages",
         ):
-            chunk.pretty_print()
             if isinstance(chunk, AIMessage):
                 response_text += chunk.content
+                chunk.pretty_print()
 
-    print(response_text)
     if message.guild is None:
         await message.author.send(response_text)
     else:

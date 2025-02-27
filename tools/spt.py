@@ -22,93 +22,74 @@ class SpotifyTool(BaseTool):
             scope="user-modify-playback-state,user-read-playback-state"
         ))
 
-    def play(self):
+    def _play_pause(self):
         try:
-            self._sp.start_playback()
-            return "Playback started."
+            current_status = self._sp.current_playback()
+            if current_status["is_playing"]:
+                self._sp.pause_playback()
+                return "Playback paused"
+            else:
+                self._sp.start_playback()
+                return "Playback resumed."
         except Exception as e:
-            return f"Error starting playback: {e}"
+            return f"Error making playback request: {e}"
 
-    def pause(self):
-        try:
-            self._sp.pause_playback()
-            return "Playback paused."
-        except Exception as e:
-            return f"Error pausing playback: {e}"
-
-    def next_track(self):
+    def _next_track(self):
         try:
             self._sp.next_track()
             return "Skipped to the next track."
         except Exception as e:
             return f"Error skipping track: {e}"
 
-    def previous_track(self):
+    def _previous_track(self):
         try:
             self._sp.previous_track()
             return "Went back to the previous track."
         except Exception as e:
             return f"Error going to previous track: {e}"
 
-    def current_track(self) -> str:
-        try:
-            response = self._sp.current_playback()
-            if response and response.get('item'):
-                return "Currently playing: " + response['item']['name']
-            return "No track is currently playing."
-        except Exception as e:
-            return f"Error: {e}"
-
-    def next_in_queue(self) -> str:
+    def _track_info(self) -> str:
         try:
             response = self._sp.queue()
-            if response and response.get("queue"):
-                return "1st queued " + response["queue"][0]['name'] \
-                    + "2nd queued " + response["queue"][1]['name'] \
-                    + "3nd queued " + response["queue"][2]['name']
-            return "No upcoming tracks in queue."
+            if response.get("currently_playing") is not None:
+                return f"currently playing:{response["currently_playing"]["name"]},next in queue:{response["queue"][0]["name"]}"
+            else:
+                return "No track is currently playing."
         except Exception as e:
             return f"Error: {e}"
 
-    def set_volume(self, volume: int) -> str:
+    def _set_volume(self, volume: int) -> str:
         try:
-            # current_volume = self._sp.current_playback()[
-            #   "device"]["volume_percent"]
-            current_device = self._sp.current_playback()[
-                "device"]["type"]
-            if not current_device == "Smartphone":
-                self._sp.volume(volume)
-                return f"volume changed to {volume}."
-            else:
-                return "can not change the volume of Smartphone"
+            playback = self._sp.current_playback()
+            device_type = playback.get("device", {}).get("type")
+            if device_type and device_type.lower() == "smartphone":
+                return "Cannot change volume on a smartphone."
+
+            self._sp.volume(volume)
+            return f"Volume set to {volume}."
         except Exception as e:
             return f"Error chainging volume: {e}"
 
     def _run(
             self,
-            command: Literal["play", "pause", "next",
-                             "previous", "current",
-                             "queued", "volume",
+            command: Literal["play&pause", "next",
+                             "previous", "track_info", "volume",
                              ],
             volume: Optional[int] = None
     ) -> str:
         command = command.lower().strip()
-        if command in ["play"]:
-            return self.play()
-        elif command in ["pause"]:
-            return self.pause()
+        if command in ["play&pause"]:
+            return self._play_pause()
         elif command in ["next"]:
-            return self.next_track()
+            return self._next_track()
         elif command in ["previous"]:
-            return self.previous_track()
-        elif command in ["current"]:
-            return self.current_track()
-        elif command in ["queued"]:
-            return self.next_in_queue()
+            return self._previous_track()
+        elif command in ["track_info"]:
+            return self._track_info()
         elif command in ["volume"]:
             if volume is None:
                 return "Please provide a volume level."
-            return self.set_volume(int(volume))
+            return self._set_volume(int(volume))
         else:
-            return f"Command '{command}' not recognized. Try 'play', 'pause',\
-            'next', 'current', 'queued', 'volume' or 'previous'."
+            return f"Command '{command}' not recognized. Available commands:\
+            play_pause, next, previous, track_info, volume."

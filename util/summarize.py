@@ -7,7 +7,7 @@ load_dotenv()
 llm = ChatGoogleGenerativeAI(
     model="gemini-2.0-flash-lite",
     google_api_key=os.getenv("API_KEY"),
-    temperature=0.6
+    temperature=0.7
 )
 
 template = ChatPromptTemplate.from_messages([

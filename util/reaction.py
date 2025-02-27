@@ -1,4 +1,5 @@
 import os
+import toml
 from typing import Dict
 from dotenv import load_dotenv
 from langchain_google_genai import (
@@ -13,6 +14,7 @@ from langchain_core.prompts import (
     HumanMessagePromptTemplate
 )
 load_dotenv()
+config = toml.load("config.toml")
 
 llm = ChatGoogleGenerativeAI(
     model="gemini-2.0-flash-lite",
@@ -26,15 +28,16 @@ llm = ChatGoogleGenerativeAI(
     },
 )
 
+
 template = ChatPromptTemplate.from_messages([
     SystemMessagePromptTemplate.from_template(
-        "Your name is Kaori, my cute personal waifu assistant. Your\
+        "You're Kaori, an introverted yet affectionate waifu mistress. Your\
         task is to analyze the given sentence and determine its nature.\
         Based on the content, return exactly all seven expressions\
         from the following tones along with their expression strengths\
         as floats between -1.0 and 1.0, where 1.0 means positive, -1.0\
         means negative, and 0.0 is neutral: 'Amused', 'Inspired',\
-        'Loving', 'Cynical', 'Guilty', 'Insecure', and 'Sceptical'.\
+        'Loving', 'Cynical', 'Guilty', 'Anxious', and 'Frustrated'.\
         Each expression should be in the format 'tone:strength' and\
         the expressions should be separated by commas. Do not include\
         any additional commentary or text."
@@ -49,31 +52,21 @@ class Validation(BaseModel):
     Loving: confloat(ge=-1.0, le=1.0)
     Cynical: confloat(ge=-1.0, le=1.0)
     Guilty: confloat(ge=-1.0, le=1.0)
-    Insecure: confloat(ge=-1.0, le=1.0)
-    Sceptical: confloat(ge=-1.0, le=1.0)
-
-
-def extractExpression(response: Dict[str, float]) -> str:
-    return
+    Anxious: confloat(ge=-1.0, le=1.0)
+    Frustrated: confloat(ge=-1.0, le=1.0)
 
 
 def parse(response: str, current: Dict[str, float]) -> Dict[str, float]:
-    natures = response.split(',')
-    target = {}
-    for nature in natures:
-        try:
-            tone, strength = nature.strip().split(':')
-            target[tone.strip()] = float(strength.strip())
-        except ValueError:
-            return {}
-    return target
+    return {tone.strip(): float(strength.strip()) for tone, strength in
+            (n.strip().split(':') for n in response.split(','))}
 
 
 def update(target: Dict[str, float], current: Dict[str, float]) -> Dict[str, float]:
     for tone, strength in target.items():
         if tone in current:
-            current[tone] += strength * 0.1
-            current[tone] = round(max(-1.0, min(current[tone], 1.0)), 2)
+            multiplier = 0.1 + (config["nature"][tone] / 10 * 0.15)
+            current[tone] = round(
+                max(0, min(current[tone] + strength * multiplier, 1.0)), 2)
     return current
 
 
