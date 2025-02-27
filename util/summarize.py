@@ -1,13 +1,18 @@
 import os
 from dotenv import load_dotenv
 from langchain_google_genai import ChatGoogleGenerativeAI
-from langchain_core.prompts import MessagesPlaceholder, ChatPromptTemplate, SystemMessagePromptTemplate, HumanMessagePromptTemplate
+from langchain_core.prompts import (
+    MessagesPlaceholder,
+    ChatPromptTemplate,
+    SystemMessagePromptTemplate,
+    HumanMessagePromptTemplate
+)
 load_dotenv()
 
 llm = ChatGoogleGenerativeAI(
     model="gemini-2.0-flash-lite",
     google_api_key=os.getenv("API_KEY"),
-    temperature=0.7
+    temperature=0.5
 )
 
 template = ChatPromptTemplate.from_messages([

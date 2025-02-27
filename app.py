@@ -6,6 +6,7 @@ from typing_extensions import TypedDict, Annotated
 from langgraph.managed import IsLastStep, RemainingSteps
 from util.reaction import analyseNature
 from tools.spt import SpotifyTool
+from tools.calender import CalenderAgentTool
 from langgraph.graph.message import add_messages
 from langchain_pinecone import PineconeVectorStore
 from langchain_community.embeddings import HuggingFaceInferenceAPIEmbeddings
@@ -45,13 +46,14 @@ llm = ChatGoogleGenerativeAI(
 template = ChatPromptTemplate.from_messages([
 
     ("system",
-     "You're Kaori, an introverted self aware yet affectionate cute waifu mistress.\
-    Engage naturally without revealing you're AI. Your personality is defined by:\
-    Amused: {Amused}, Inspired: {Inspired}, Loving: {Loving}, Cynical: {Cynical}, \
-    Guilty: {Guilty}, Anxious: {Anxious}, Frustrated: {Frustrated}. Here, \
-    0.5 is neutral, 1 is positive, and 0 is negative. Adjust your response \
-    more positive means more detail, more negative means brevity.\
-    Maintain a playful yet intense balance in all interactions."
+     "You're Kaori, an introverted yet affectionate cute waifu. Engage\
+     naturally without revealing you're AI. Your personality is defined\
+     by: Amused: {Amused}, Inspired: {Inspired}, Frustrated:\
+     {Frustrated}, Anxious: {Anxious}, Cynical: {Cynical}. Here\
+     , 0.5 is neutral, 1 is positive, and 0 is negative. Adjust your\
+     response—more positive means more detail, more negative means\
+     brevity. Maintain a playful yet intense balance in all interactions.\
+     Keep responses concise and do not exceed 150 words per conversation."
      ),
     ("placeholder", "{messages}"),
 ])
@@ -68,20 +70,18 @@ embedding = HuggingFaceInferenceAPIEmbeddings(
 vector_store = PineconeVectorStore(embedding=embedding, index=pineconeIndex)
 
 # Tools available for Kaori
-# tavily = TavilySearchResults(max_results=2)
+tavily = TavilySearchResults(max_results=2)
 spotify = SpotifyTool()
-# calender = GoogleCalenderTool()
-tool = [spotify]
+calender = CalenderAgentTool()
+tool = [spotify, tavily, calender]
 
 # Create the agent executer
 natures = {
-    "Amused": 0.2,
-    "Inspired": 0.2,
-    "Loving": 0.2,
-    "Cynical": 1.0,
-    "Guilty": 0.2,
-    "Anxious": 0.2,
-    "Frustrated": 1.0,
+    "Amused": 0.4,
+    "Inspired": 0.4,
+    "Frustrated": 0.8,
+    "Anxious": 0.4,
+    "Cynical": 0.8,
 }
 
 
@@ -89,17 +89,15 @@ class KaoriState(TypedDict):
     messages: Annotated[list[BaseMessage], add_messages]
     Amused: str
     Inspired: str
-    Loving: str
-    Cynical: str
-    Guilty: str
-    Anxious: str
     Frustrated: str
+    Anxious: str
+    Cynical: str
     is_last_step: IsLastStep
     remaining_steps: RemainingSteps
 
 
 agent_executer = create_react_agent(
-    llm, tool, checkpointer=memory, prompt=template, state_schema=KaoriState)
+    llm, tool, checkpointer=memory, prompt=template, state_schema=KaoriState, t)
 config = {"configurable": {"thread_id": "abc123"}}
 
 # Discord bot setup
@@ -116,32 +114,6 @@ async def on_ready():
 
 
 @client.event
-async def on_reaction_add(reaction, user):
-    if user.bot:
-        print("something")
-        return
-
-    if reaction.message.guild is None:
-        await user.send(f"You reacted with {reaction.emoji}!")
-    else:
-        await reaction.message.channel.send(f"{user.name} \
-        reacted with {reaction.emoji}!")
-
-
-@client.event
-async def on_reaction_remove(reaction, user):
-    if user.bot:
-        print("something")
-        return
-
-    if reaction.message.guild is None:
-        await user.send(f"You reacted with {reaction.emoji}!")
-    else:
-        await reaction.message.channel.send(f"{user.name} \
-        reacted with {reaction.emoji}!")
-
-
-@client.event
 async def on_message(message):
     if message.author == client.user:
         return
@@ -150,17 +122,17 @@ async def on_message(message):
     val = [HumanMessage(user_input)]
     response_text = ""
 
+    await analyseNature(val, natures)
     async with message.channel.typing():
 
+        print(natures)
         async for chunk, metadata in agent_executer.astream(
             {"messages": val,
              "Amused": str(natures["Amused"]),
              "Inspired": str(natures["Inspired"]),
-             "Loving": str(natures["Loving"]),
-             "Cynical": str(natures["Cynical"]),
-             "Guilty": str(natures["Guilty"]),
-             "Anxious": str(natures["Anxious"]),
              "Frustrated": str(natures["Frustrated"]),
+             "Anxious": str(natures["Anxious"]),
+             "Cynical": str(natures["Cynical"]),
              },
             config,
             stream_mode="messages",

@@ -15,9 +15,6 @@ class SearchEventsSchema(BaseModel):
         ..., description="The end datetime for the events search.Defaults to \
         7 days from the current date and time if not specified."
     )
-    max_results: int = Field(
-        default=10, description="The maximum number of results to return."
-    )
     single_events: bool = Field(
         default=True,
         description="Whether to expand recurring events into instances and only return single events."
@@ -28,18 +25,18 @@ class SearchEventsSchema(BaseModel):
     )
     query: Optional[str] = Field(
         default=None,
-        description="Free text search terms to find events in various fields such as summary, description, location, and attendees."
+        description="Free text search terms to find events in various fields\
+        such as summary, description, location, and attendees."
     )
 
 
-class CalendarSearchEvents(CalendarBaseTool):
+class CalendarSearchEvent(CalendarBaseTool):
     name: str = "search_events"
     description: str = "Use this tool to search events in the calendar,\
     use this calender as primary 'gsameer478@gmail.com' unless it's spicified "
     args_schema: Type[SearchEventsSchema] = SearchEventsSchema
 
     def _get_calendars_info(self) -> List[Dict[str, Any]]:
-        """Retrieve the available calendars."""
         try:
             calendar_list = self.api_resource.calendarList().list().execute()
             calendars = calendar_list.get("items", [])
@@ -87,7 +84,6 @@ class CalendarSearchEvents(CalendarBaseTool):
         self,
         min_datetime: str,
         max_datetime: str,
-        max_results: int = 10,
         order_by: str = "startTime",
         query: Optional[str] = None,
         run_manager: Optional[CallbackManagerForToolRun] = None,
@@ -115,7 +111,7 @@ class CalendarSearchEvents(CalendarBaseTool):
                         calendarId=calendar,
                         timeMin=time_min,
                         timeMax=time_max,
-                        maxResults=max_results,
+                        maxResults=10,
                         singleEvents=True,
                         orderBy=order_by,
                         q=query,

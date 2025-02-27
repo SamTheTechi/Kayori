@@ -1,11 +1,9 @@
 import re
 from datetime import datetime
-from typing import Any, Dict, List, Optional, Type, Union
+from typing import Any, Dict, List, Optional, Type
 from uuid import uuid4
-
-from langchain_core.callbacks import CallbackManagerForToolRun
 from pydantic import BaseModel, Field
-
+from langchain_core.callbacks import CallbackManagerForToolRun
 from langchain_google_community.calendar.base import CalendarBaseTool
 from langchain_google_community.calendar.utils import is_all_day_event
 

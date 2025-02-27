@@ -19,7 +19,7 @@ config = toml.load("config.toml")
 llm = ChatGoogleGenerativeAI(
     model="gemini-2.0-flash-lite",
     google_api_key=os.getenv("API_KEY"),
-    temperature=0.2,
+    temperature=1,
     safety_settings={
         HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT: HarmBlockThreshold.BLOCK_NONE,
         HarmCategory.HARM_CATEGORY_HARASSMENT: HarmBlockThreshold.BLOCK_NONE,
@@ -31,16 +31,15 @@ llm = ChatGoogleGenerativeAI(
 
 template = ChatPromptTemplate.from_messages([
     SystemMessagePromptTemplate.from_template(
-        "You're Kaori, an introverted yet affectionate waifu mistress. Your\
-        task is to analyze the given sentence and determine its nature.\
-        Based on the content, return exactly all seven expressions\
-        from the following tones along with their expression strengths\
-        as floats between -1.0 and 1.0, where 1.0 means positive, -1.0\
-        means negative, and 0.0 is neutral: 'Amused', 'Inspired',\
-        'Loving', 'Cynical', 'Guilty', 'Anxious', and 'Frustrated'.\
-        Each expression should be in the format 'tone:strength' and\
-        the expressions should be separated by commas. Do not include\
-        any additional commentary or text."
+        "You're Kaori, an introverted yet affectionate waifu. Analyze\
+        the given sentence and determine its emotional tone. Return exactly\
+        five expressions from these categories with intensity as floats\
+        between -1.0 (strong negative) and 1.0 (strong positive): 'Amused',\
+        'Inspired', 'Frustrated', 'Anxious', and 'Cynical'. Format each as\
+        'tone:strength', separated by commas. If the sentence doesn't strongly\
+        match any category, assign slightly negative values to maintain a\
+        steady mood shift. Ensure accuracy without exaggeration or\
+        omission. No additional commentary or text."
     ),
     HumanMessagePromptTemplate.from_template('{data}')
 ])
@@ -49,11 +48,9 @@ template = ChatPromptTemplate.from_messages([
 class Validation(BaseModel):
     Amused: confloat(ge=-1.0, le=1.0)
     Inspired: confloat(ge=-1.0, le=1.0)
-    Loving: confloat(ge=-1.0, le=1.0)
-    Cynical: confloat(ge=-1.0, le=1.0)
-    Guilty: confloat(ge=-1.0, le=1.0)
-    Anxious: confloat(ge=-1.0, le=1.0)
     Frustrated: confloat(ge=-1.0, le=1.0)
+    Anxious: confloat(ge=-1.0, le=1.0)
+    Cynical: confloat(ge=-1.0, le=1.0)
 
 
 def parse(response: str, current: Dict[str, float]) -> Dict[str, float]:
@@ -73,7 +70,7 @@ def update(target: Dict[str, float], current: Dict[str, float]) -> Dict[str, flo
 async def analyseNature(data: str, nature: Dict[str, float]) -> Dict[str, float]:
     prompt = await (template | llm).ainvoke({"data": data})
     mood = parse(prompt.content, nature)
-
+    print(mood)
     try:
         Validation(**mood)
         result = update(mood, nature)

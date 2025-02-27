@@ -1,15 +1,19 @@
 import os
 from dotenv import load_dotenv
-from langchain_core.prompts import ChatPromptTemplate
-from langchain_google_genai import ChatGoogleGenerativeAI
-from langchain_core.messages import AIMessage, BaseMessage
-from langgraph.graph.message import add_messages
-from typing_extensions import TypedDict, Annotated
-from langgraph.managed import IsLastStep, RemainingSteps
-from serchevents import CalendarSearchEvents
-from createvent import CalendarCreateEvent
-from langgraph.prebuilt import create_react_agent
 from datetime import datetime, timezone
+from typing import Type
+from pydantic import BaseModel, Field
+from tools.deletevent import CalendarDeleteEvent
+from tools.createvent import CalendarCreateEvent
+from tools.searchevent import CalendarSearchEvent
+from typing_extensions import TypedDict, Annotated
+from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.messages import BaseMessage, AIMessage
+from langchain_google_genai import ChatGoogleGenerativeAI
+from langchain_core.tools import BaseTool
+from langgraph.managed import IsLastStep, RemainingSteps
+from langgraph.graph.message import add_messages
+from langgraph.prebuilt import create_react_agent
 load_dotenv()
 
 llm = ChatGoogleGenerativeAI(
@@ -28,7 +32,7 @@ template = ChatPromptTemplate.from_messages([
     ("placeholder", "{messages}"),
 ])
 
-tool = [CalendarSearchEvents(), CalendarCreateEvent()]
+tool = [CalendarSearchEvent(), CalendarCreateEvent(), CalendarDeleteEvent()]
 
 
 class CalenderState(TypedDict):
@@ -48,18 +52,32 @@ agent_executer = create_react_agent(
 config = {"configurable": {"thread_id": "abc123"}}
 
 
-while True:
-    val = input("sam: ")
-    test = ""
-    for chunk, metadata in agent_executer.stream(
-        {
-            "messages": val,
-            "current_data_time": str(datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S"))
-        },
-        config,
-        stream_mode="messages",
-    ):
-        if isinstance(chunk, AIMessage):
-            chunk.pretty_print()
-            test += chunk.content
-    print(test)
+class CalenderAgentSchema(BaseModel):
+    query: str = Field(...,
+                       description="User request realted to google calender")
+
+
+class CalenderAgentTool(BaseTool):
+    name: str = "calender_agent_tool"
+    description: str = "A specialized tool for managing calendar tasks.\
+    including creating, deleting, and searching for events. \
+    Use it for direct questions about scheduling, events, and time management."
+    args_schema: Type[CalenderAgentSchema] = CalenderAgentSchema
+
+    def _run(self, query: str) -> str:
+        response_text = ""
+        for chunk, metadata in agent_executer.stream(
+            {
+                "messages": query,
+                "current_data_time": str(datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S"))
+            },
+            config,
+            stream_mode="messages",
+        ):
+            if isinstance(chunk, AIMessage):
+                response_text += chunk.content
+
+        return response_text
+
+    def __call__(self, query: str) -> str:
+        return self._run(query)

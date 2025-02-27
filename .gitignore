@@ -1,5 +1,6 @@
 venv
 .env
-_*
+__p*
 .*
 token.json
+api.json
