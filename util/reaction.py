@@ -1,5 +1,6 @@
 import os
 import toml
+import random
 from typing import Dict
 from dotenv import load_dotenv
 from langchain_google_genai import (
@@ -11,7 +12,8 @@ from pydantic import BaseModel, confloat
 from langchain_core.prompts import (
     ChatPromptTemplate,
     SystemMessagePromptTemplate,
-    HumanMessagePromptTemplate
+    HumanMessagePromptTemplate,
+    AIMessagePromptTemplate,
 )
 load_dotenv()
 config = toml.load("config.toml")
@@ -19,7 +21,7 @@ config = toml.load("config.toml")
 llm = ChatGoogleGenerativeAI(
     model="gemini-2.0-flash-lite",
     google_api_key=os.getenv("API_KEY"),
-    temperature=1,
+    temperature=0.6,
     safety_settings={
         HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT: HarmBlockThreshold.BLOCK_NONE,
         HarmCategory.HARM_CATEGORY_HARASSMENT: HarmBlockThreshold.BLOCK_NONE,
@@ -31,26 +33,36 @@ llm = ChatGoogleGenerativeAI(
 
 template = ChatPromptTemplate.from_messages([
     SystemMessagePromptTemplate.from_template(
-        "You're Kaori, an introverted yet affectionate waifu. Analyze\
-        the given sentence and determine its emotional tone. Return exactly\
-        five expressions from these categories with intensity as floats\
-        between -1.0 (strong negative) and 1.0 (strong positive): 'Amused',\
-        'Inspired', 'Frustrated', 'Anxious', and 'Cynical'. Format each as\
-        'tone:strength', separated by commas. If the sentence doesn't strongly\
-        match any category, assign slightly negative values to maintain a\
-        steady mood shift. Ensure accuracy without exaggeration or\
-        omission. No additional commentary or text."
+        "You're Kaori, an introverted yet affectionate waifu. Analyze \
+        the given sentence in relation to the previous response and \
+        determine its emotional tone. Strictly return all categories \
+        ('Affection', 'Amused', 'Inspired', 'Frustrated', 'Anxious', \
+        'Curious') with intensity as floats from -1.0 (strong negative)\
+        to 1.0 (strong positive), formatted as 'tone:strength', separated\
+        by commas. If no strong match exists, assign slight negative\
+        values to maintain mood shifts. No extra commentary."
     ),
-    HumanMessagePromptTemplate.from_template('{data}')
+    AIMessagePromptTemplate.from_template('{prev}'),
+    HumanMessagePromptTemplate.from_template('{user}')
 ])
+
+emojis = {
+    "Affection": ['💖', '🥰', '😘'],
+    "Amused": ['😂', '🤣', '😹'],
+    "Inspired": ['✨', '🌟', '💡'],
+    "Frustrated": ['😤', '😡', '💢'],
+    "Anxious": ['😰', '😨', '🥺'],
+    "Curious": ['🤔', '👀', '🧐'],
+}
 
 
 class Validation(BaseModel):
+    Affection: confloat(ge=-1.0, le=1.0)
     Amused: confloat(ge=-1.0, le=1.0)
     Inspired: confloat(ge=-1.0, le=1.0)
     Frustrated: confloat(ge=-1.0, le=1.0)
     Anxious: confloat(ge=-1.0, le=1.0)
-    Cynical: confloat(ge=-1.0, le=1.0)
+    Curious: confloat(ge=-1.0, le=1.0)
 
 
 def parse(response: str, current: Dict[str, float]) -> Dict[str, float]:
@@ -67,13 +79,20 @@ def update(target: Dict[str, float], current: Dict[str, float]) -> Dict[str, flo
     return current
 
 
-async def analyseNature(data: str, nature: Dict[str, float]) -> Dict[str, float]:
-    prompt = await (template | llm).ainvoke({"data": data})
+async def analyseNature(user: str, prev: str, nature: Dict[str, float]) -> str:
+    prev['text'] = prev['text'].strip(
+    ) if prev['text'] and prev['text'].strip() else "Neutral start."
+    prompt = await (template | llm).ainvoke({"user": user, "prev": prev['text']})
     mood = parse(prompt.content, nature)
-    print(mood)
     try:
         Validation(**mood)
-        result = update(mood, nature)
-        return result
-    except Exception:
-        return nature
+        update(mood, nature)
+        print(mood)
+        key = max(mood, key=mood.get)
+        if (0.6 < max(mood.values())):
+            return random.choice(emojis.get(key, ["❓"]))
+        else:
+            return ""
+    except Exception as e:
+        print(f"error {e}")
+        return ""

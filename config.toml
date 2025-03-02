@@ -1,8 +1,9 @@
 # mood multipliers, 0 to 10
 [nature]
+Affection = 4
 Amused = 5
 Inspired = 7
 Frustrated = 8
-Anxious = 2
-Cynical = 6
+Anxious = 6
+Curious = 4
 
