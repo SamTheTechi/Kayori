@@ -57,7 +57,6 @@ async def good_morning(
         ):
             if isinstance(chunk, AIMessage):
                 response_text += chunk.content
-                chunk.pretty_print()
 
         print("morning wished")
         await user.send(response_text)
@@ -79,7 +78,45 @@ async def good_evening(
         response_text = ""
         val = [SystemMessage("wish a simple good evening and ask how\
             you day goes!, under 60 words"),
-               HumanMessage("ge")]
+               HumanMessage("good evening!")]
+        balance_mood(natures)
+
+        async for chunk, metadata in agent_executer.astream(
+            {"messages": val,
+             "Affection": str(natures["Affection"]),
+             "Amused": str(natures["Amused"]),
+             "Inspired": str(natures["Inspired"]),
+             "Frustrated": str(natures["Frustrated"]),
+             "Anxious": str(natures["Anxious"]),
+             "Curious": str(natures["Curious"]),
+             },
+            config,
+            stream_mode="messages",
+        ):
+            if isinstance(chunk, AIMessage):
+                response_text += chunk.content
+
+        print("evening wished")
+        await user.send(response_text)
+        prev_response['text'] = response_text
+        await client.change_presence(status=discord.Status.idle)
+
+    except Exception as e:
+        print(e)
+
+
+async def random_convo(
+        client,
+        agent_executer,
+        config, natures: Dict[str, float],
+        prev_response: Dict[str, str]
+):
+    try:
+        user = await client.fetch_user(int(os.getenv("USER_ID")))
+        response_text = ""
+        val = [SystemMessage("start a conversation!"),
+               HumanMessage("ge"),
+               AIMessage("")]
         balance_mood(natures)
 
         async for chunk, metadata in agent_executer.astream(
@@ -103,19 +140,5 @@ async def good_evening(
         prev_response['text'] = response_text
         await client.change_presence(status=discord.Status.idle)
 
-    except Exception as e:
-        print(e)
-
-
-async def random_convo(client, agent_executer, config, natures: Dict[str, float], prev_response: Dict[str, str]):
-    try:
-        await client.change_presence(status=discord.Status.idle)
-    except Exception as e:
-        print(e)
-
-
-async def remainders(client, agent_executer, config, natures: Dict[str, float], prev_response: Dict[str, str]):
-    try:
-        await client.change_presence(status=discord.Status.idle)
     except Exception as e:
         print(e)

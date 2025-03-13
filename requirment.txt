@@ -4,3 +4,7 @@ langchain
 pinecone
 langgraph
 toml
+youtube_transcript_api
+firebase_admin
+scikit-learn
+nltk

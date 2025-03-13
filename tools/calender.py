@@ -13,6 +13,7 @@ from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.tools import BaseTool
 from langgraph.managed import IsLastStep, RemainingSteps
 from langgraph.graph.message import add_messages
+from langchain_core.messages import ToolMessage
 from langgraph.prebuilt import create_react_agent
 load_dotenv()
 
@@ -59,9 +60,10 @@ class CalenderAgentSchema(BaseModel):
 
 class CalenderAgentTool(BaseTool):
     name: str = "calender_agent_tool"
-    description: str = "A specialized tool for managing calendar tasks.\
-    including creating, deleting, and searching for events. \
-    Use it for direct questions about scheduling, events, and time management."
+    description: str = "A specialized tool for managing calendar-related tasks\
+    ,including checking schedule, planning and handling events.\
+    Use it to answer questions about your plans, upcoming tasks, and\
+    availability, as well as creating, deleting, and searching for events."
     args_schema: Type[CalenderAgentSchema] = CalenderAgentSchema
 
     def _run(self, query: str) -> str:
@@ -77,7 +79,7 @@ class CalenderAgentTool(BaseTool):
             if isinstance(chunk, AIMessage):
                 response_text += chunk.content
 
-        return response_text
+        return str(response_text)
 
     def __call__(self, query: str) -> str:
         return self._run(query)

@@ -1,7 +1,9 @@
 import os
 import random
 import discord
+import asyncio
 import firebase_admin
+from server import run_server
 from firebase_admin import credentials
 from dotenv import load_dotenv
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
@@ -9,11 +11,13 @@ from pinecone import Pinecone
 from typing_extensions import TypedDict, Annotated
 from langgraph.managed import IsLastStep, RemainingSteps
 from util.reaction import analyseNature
-from helper.scheduler import (
+from util.scheduler import (
     change_pfp,
     good_evening,
     good_morning,
 )
+from util.chunker import split_text
+from util.document import memory_constructor
 from tools.spt import SpotifyTool
 from tools.calender import CalenderAgentTool
 from langgraph.graph.message import add_messages
@@ -25,7 +29,8 @@ from langchain_google_genai import ChatGoogleGenerativeAI, HarmCategory, HarmBlo
 from langchain_core.messages import (
     HumanMessage,
     AIMessage,
-    BaseMessage
+    BaseMessage,
+    SystemMessage
 )
 from langgraph.checkpoint.memory import MemorySaver
 from langgraph.prebuilt import create_react_agent
@@ -115,7 +120,7 @@ agent_executer = create_react_agent(
     tool,
     checkpointer=memory,
     prompt=template,
-    state_schema=KaoriState
+    state_schema=KaoriState,
 )
 config = {"configurable": {"thread_id": "abc123"}}
 prev_response = {"text": ""}
@@ -132,13 +137,16 @@ client = discord.Client(intents=intents)
 @client.event
 async def on_ready():
     # profile change
-    scheduler.add_job(change_pfp, "interval", minutes=1, args=[client])
+    scheduler.add_job(change_pfp, "interval", hours=18, args=[client])
 
     # wishes
-    scheduler.add_job(good_morning, "cron", second=random.randint(
-        10, 20), args=[client, agent_executer, config, natures, prev_response])
-    scheduler.add_job(good_evening, "cron", second=random.randint(
-        40, 50), args=[client, agent_executer, config, natures, prev_response])
+    scheduler.add_job(good_morning, "cron", hour=random.randint(
+        7, 9), args=[client, agent_executer, config, natures, prev_response])
+    scheduler.add_job(good_evening, "cron", hour=random.randint(
+        17, 19), args=[client, agent_executer, config, natures, prev_response])
+
+    # random
+
     print(f"Kaori is online as {client.user}")
     scheduler.start()
 
@@ -152,8 +160,22 @@ async def on_message(message):
         return
 
     user_input = message.content
-    val = [HumanMessage(user_input)]
     response_text = ""
+    final_text = ""
+    tool_called = False
+
+    # docs = vector_store.similarity_search(
+    #     query=user_input,
+    #     k=2
+    # )
+
+    # context = [
+    #     SystemMessage(content="Relevant context from past interactions:"),
+    #     *[HumanMessage(content=f"Past context: {doc.page_content}") for doc in docs]
+    # ]
+
+    # val = [HumanMessage(user_input)] + context
+    val = [HumanMessage(user_input)]
 
     reaction = await analyseNature(user_input, prev_response, natures)
     if reaction.strip() != "":
@@ -161,7 +183,7 @@ async def on_message(message):
 
     async with message.channel.typing():
 
-        async for chunk, metadata in agent_executer.astream(
+        async for chunk in agent_executer.astream(
             {"messages": val,
              "Affection": str(natures["Affection"]),
              "Amused": str(natures["Amused"]),
@@ -171,13 +193,42 @@ async def on_message(message):
              "Curious": str(natures["Curious"]),
              },
             config,
-            stream_mode="messages",
+            stream_mode="updates",
         ):
-            if isinstance(chunk, AIMessage):
-                response_text += chunk.content
-                chunk.pretty_print()
+            if 'agent' in chunk:
+                messages = chunk['agent'].get('messages', [])
+                for msg in messages:
+                    if isinstance(msg, AIMessage):
+                        if msg.tool_calls:
+                            tool_called = True
 
-        await message.author.send(response_text)
-        prev_response['text'] = response_text
+                        if tool_called:
+                            if response_text.strip():
+                                await message.author.send(response_text)
+                                final_text = response_text
+                                response_text = ""
+                            response_text += msg.content
+                            print(response_text)
+                        else:
+                            response_text += msg.content
+                            print(response_text)
 
-client.run(TOKEN)
+        if response_text.strip():
+            await message.author.send(response_text)
+            final_text += response_text
+            prev_response['text'] = response_text
+
+    #  if final_text.strip() and not tool_called:
+        #   chunkted = split_text(final_text)
+        #   vector_store.add_documents(
+        #       [memory_constructor(chunk) for chunk in chunkted])
+
+
+async def main():
+    bot_task = asyncio.create_task(client.start(TOKEN))
+    api_task = asyncio.create_task(run_server())
+
+    await asyncio.gather(bot_task, api_task)
+
+if __name__ == "__main__":
+    asyncio.run(main())

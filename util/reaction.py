@@ -48,11 +48,19 @@ template = ChatPromptTemplate.from_messages([
 
 emojis = {
     "Affection": ['💖', '🥰', '😘'],
-    "Amused": ['😂', '🤣', '😹'],
-    "Inspired": ['✨', '🌟', '💡'],
-    "Frustrated": ['😤', '😡', '💢'],
-    "Anxious": ['😰', '😨', '🥺'],
+    "Amused": ['😂', '🤣'],
+    "Inspired": ['✨', '💡'],
+    "Frustrated": ['😤', '😡'],
+    "Anxious": ['😨', '🥺'],
     "Curious": ['🤔', '👀', '🧐'],
+}
+opposite_emojis = {
+    "Affection": ['💔', '😠'],
+    "Amused": ['🙄', '😑'],
+    "Inspired": ['😞', '🙃'],
+    "Frustrated": ['😌', '🤗'],
+    "Anxious": ['😎', '😃'],
+    "Curious": ['😴', '😕'],
 }
 
 
@@ -73,7 +81,7 @@ def parse(response: str, current: Dict[str, float]) -> Dict[str, float]:
 def update(target: Dict[str, float], current: Dict[str, float]) -> Dict[str, float]:
     for tone, strength in target.items():
         if tone in current:
-            multiplier = 0.1 + (config["nature"][tone] / 10 * 0.15)
+            multiplier = 0.1 + (config["nature"][tone] / 10 * 0.1)
             current[tone] = round(
                 max(0, min(current[tone] + strength * multiplier, 1.0)), 2)
     return current
@@ -87,10 +95,13 @@ async def analyseNature(user: str, prev: str, nature: Dict[str, float]) -> str:
     try:
         Validation(**mood)
         update(mood, nature)
-        print(mood)
         key = max(mood, key=mood.get)
-        if (0.6 < max(mood.values())):
-            return random.choice(emojis.get(key, ["❓"]))
+        val = abs(max(mood.values()))
+        if (0.8 <= val):
+            if (val > 0):
+                return random.choice(emojis.get(key, ["❓"]))
+            else:
+                return random.choice(opposite_emojis.get(key, ["❓"]))
         else:
             return ""
     except Exception as e:
