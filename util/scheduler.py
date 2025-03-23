@@ -38,9 +38,14 @@ async def good_morning(
     try:
         user = await client.fetch_user(int(os.getenv("USER_ID")))
         response_text = ""
-        val = [SystemMessage("wish a simple good morning and have a grate \
-        day ahead, under 50 words"),
-               HumanMessage("gm")]
+        val = [
+            SystemMessage(
+                "Start the day with a warm and cheerful 'Good morning!' Wish the user a great day ahead in a friendly and uplifting way. "
+                "Keep it short, positive, and under 50 words."
+            ),
+            HumanMessage("gm")
+        ]
+
         balance_mood(natures)
 
         async for chunk, metadata in agent_executer.astream(
@@ -76,9 +81,13 @@ async def good_evening(
     try:
         user = await client.fetch_user(int(os.getenv("USER_ID")))
         response_text = ""
-        val = [SystemMessage("wish a simple good evening and ask how\
-            you day goes!, under 60 words"),
-               HumanMessage("good evening!")]
+        val = [
+            SystemMessage(
+                "Greet the user with a heartfelt 'Good evening!' and then ask them how their day went in a warm and caring way. "
+                "Ensure your response feels personal, friendly, and under 60 words. Avoid generic or robotic phrasing."
+            ),
+            HumanMessage("good evening!")
+        ]
         balance_mood(natures)
 
         async for chunk, metadata in agent_executer.astream(

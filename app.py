@@ -142,8 +142,8 @@ async def on_ready():
     # wishes
     scheduler.add_job(good_morning, "cron", hour=random.randint(
         7, 9), args=[client, agent_executer, config, natures, prev_response])
-    scheduler.add_job(good_evening, "cron", hour=random.randint(
-        17, 19), args=[client, agent_executer, config, natures, prev_response])
+    scheduler.add_job(good_evening, "cron", hour=random.randint(17, 19), args=[
+                      client, agent_executer, config, natures, prev_response])
 
     # random
 
@@ -164,18 +164,17 @@ async def on_message(message):
     final_text = ""
     tool_called = False
 
-    # docs = vector_store.similarity_search(
-    #     query=user_input,
-    #     k=2
-    # )
+    docs = vector_store.similarity_search(
+        query=user_input,
+        k=2
+    )
 
-    # context = [
-    #     SystemMessage(content="Relevant context from past interactions:"),
-    #     *[HumanMessage(content=f"Past context: {doc.page_content}") for doc in docs]
-    # ]
+    context = [
+        SystemMessage(content="Relevant context from past interactions:"),
+        *[HumanMessage(content=f"Past context: {doc.page_content}") for doc in docs]
+    ]
 
-    # val = [HumanMessage(user_input)] + context
-    val = [HumanMessage(user_input)]
+    val = [HumanMessage(user_input)] + context
 
     reaction = await analyseNature(user_input, prev_response, natures)
     if reaction.strip() != "":
@@ -218,10 +217,10 @@ async def on_message(message):
             final_text += response_text
             prev_response['text'] = response_text
 
-    #  if final_text.strip() and not tool_called:
-        #   chunkted = split_text(final_text)
-        #   vector_store.add_documents(
-        #       [memory_constructor(chunk) for chunk in chunkted])
+        if final_text.strip() and not tool_called:
+            chunkted = split_text(final_text)
+            vector_store.add_documents(
+                [memory_constructor(chunk) for chunk in chunkted])
 
 
 async def main():

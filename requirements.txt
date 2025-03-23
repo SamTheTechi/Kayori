@@ -1,0 +1,16 @@
+langchain
+langchain_google_community
+langchain_google_genai
+langchain_pinecone
+langgraph
+pinecone
+apscheduler
+discord
+spotipy
+toml
+youtube_transcript_api
+firebase_admin
+uvicorn
+fastapi
+dotenv
+google-auth-oauthlib
