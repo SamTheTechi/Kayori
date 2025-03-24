@@ -87,10 +87,11 @@ def update(target: Dict[str, float], current: Dict[str, float]) -> Dict[str, flo
     return current
 
 
-async def analyseNature(user: str, prev: str, nature: Dict[str, float]) -> str:
-    prev['text'] = prev['text'].strip(
-    ) if prev['text'] and prev['text'].strip() else "Neutral start."
-    prompt = await (template | llm).ainvoke({"user": user, "prev": prev['text']})
+async def analyseNature(user: str, getcontext, nature: Dict[str, float]) -> str:
+    prev_context = getcontext()
+    prev = prev_context[0].strip(
+    ) if prev_context and prev_context[0].strip() else "Neutral start."
+    prompt = await (template | llm).ainvoke({"user": user, "prev": prev[0]})
     mood = parse(prompt.content, nature)
     try:
         Validation(**mood)

@@ -16,6 +16,7 @@ from util.scheduler import (
     good_evening,
     good_morning,
 )
+from util.store import natures, update_context, get_context, update_last_time
 from util.chunker import split_text
 from util.document import memory_constructor
 from tools.spt import SpotifyTool
@@ -93,14 +94,6 @@ calender = CalenderAgentTool()
 tool = [spotify, tavily, calender]
 
 # Create the agent executer
-natures = {
-    "Affection": 0.5,
-    "Amused": 0.2,
-    "Inspired": 0.2,
-    "Frustrated": 0.8,
-    "Anxious": 0.2,
-    "Curious": 0.2,
-}
 
 
 class KaoriState(TypedDict):
@@ -123,7 +116,6 @@ agent_executer = create_react_agent(
     state_schema=KaoriState,
 )
 config = {"configurable": {"thread_id": "abc123"}}
-prev_response = {"text": ""}
 
 # Discord bot setup
 scheduler = AsyncIOScheduler()
@@ -141,11 +133,13 @@ async def on_ready():
 
     # wishes
     scheduler.add_job(good_morning, "cron", hour=random.randint(
-        7, 9), args=[client, agent_executer, config, natures, prev_response])
+        7, 9), args=[client, agent_executer, config, natures, update_context])
     scheduler.add_job(good_evening, "cron", hour=random.randint(17, 19), args=[
-                      client, agent_executer, config, natures, prev_response])
+                      client, agent_executer, config, natures, update_context])
 
     # random
+    scheduler.add_job(good_evening, "interval", hours=random.randint(4, 5), args=[
+                      client, agent_executer, config])
 
     print(f"Kaori is online as {client.user}")
     scheduler.start()
@@ -153,7 +147,6 @@ async def on_ready():
 
 @client.event
 async def on_message(message):
-    global prev_response
 
     if message.author == client.user or not isinstance(
             message.channel, discord.DMChannel):
@@ -164,19 +157,20 @@ async def on_message(message):
     final_text = ""
     tool_called = False
 
-    docs = vector_store.similarity_search(
-        query=user_input,
-        k=2
-    )
+    # docs = vector_store.similarity_search(
+    #     query=user_input,
+    #     k=2
+    # )
 
-    context = [
-        SystemMessage(content="Relevant context from past interactions:"),
-        *[HumanMessage(content=f"Past context: {doc.page_content}") for doc in docs]
-    ]
+    # context = [
+    #     SystemMessage(content="Relevant context from past interactions:"),
+    #     *[HumanMessage(content=f"Past context: {doc.page_content}") for doc in docs]
+    # ]
 
-    val = [HumanMessage(user_input)] + context
+    # val = [HumanMessage(user_input)] + context
+    val = [HumanMessage(user_input)]
 
-    reaction = await analyseNature(user_input, prev_response, natures)
+    reaction = await analyseNature(user_input, get_context, natures)
     if reaction.strip() != "":
         await message.add_reaction(reaction)
 
@@ -207,20 +201,19 @@ async def on_message(message):
                                 final_text = response_text
                                 response_text = ""
                             response_text += msg.content
-                            print(response_text)
                         else:
                             response_text += msg.content
-                            print(response_text)
 
         if response_text.strip():
             await message.author.send(response_text)
             final_text += response_text
-            prev_response['text'] = response_text
+            update_context(response_text)
+            update_last_time()
 
-        if final_text.strip() and not tool_called:
-            chunkted = split_text(final_text)
-            vector_store.add_documents(
-                [memory_constructor(chunk) for chunk in chunkted])
+    #  if final_text.strip() and not tool_called:
+        #   chunkted = split_text(final_text)
+        #   vector_store.add_documents(
+        #       [memory_constructor(chunk) for chunk in chunkted])
 
 
 async def main():
