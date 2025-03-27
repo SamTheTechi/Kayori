@@ -13,7 +13,6 @@ from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.tools import BaseTool
 from langgraph.managed import IsLastStep, RemainingSteps
 from langgraph.graph.message import add_messages
-from langchain_core.messages import ToolMessage
 from langgraph.prebuilt import create_react_agent
 load_dotenv()
 
@@ -33,7 +32,8 @@ template = ChatPromptTemplate.from_messages([
     ("placeholder", "{messages}"),
 ])
 
-tool = [CalendarSearchEvent(), CalendarCreateEvent(), CalendarDeleteEvent()]
+tool = [CalendarSearchEvent(), CalendarCreateEvent(),
+        CalendarDeleteEvent()]
 
 
 class CalenderState(TypedDict):

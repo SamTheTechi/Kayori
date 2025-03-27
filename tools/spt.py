@@ -44,8 +44,12 @@ class SpotifyTool(BaseTool):
 
     def _next_track(self):
         try:
+            response = self._sp.queue()
             self._sp.next_track()
-            return "Skipped to the next track."
+            next_song = response["queue"][0]["name"] if response.get(
+                "currently_playing") is not None else None
+            print(next_song)
+            return f"Skipped to the next track {next_song}."
         except Exception as e:
             return f"Error skipping track: {e}"
 

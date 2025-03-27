@@ -2,6 +2,14 @@ from datetime import datetime, timezone
 from util.fixedQueue import FixedQueue
 
 queue = FixedQueue(max_size=3)
+
+location = {
+    "latitude": 0,
+    "longitude": 0,
+    "battery": 0,
+    "timestamp": 0,
+}
+
 natures = {
     "Affection": 0.5,
     "Amused": 0.2,
@@ -14,6 +22,20 @@ natures = {
 time_eclipse = {
     "time": 0,
 }
+
+# weather
+
+
+def update_location(
+    latitude: float,
+    longitude: float,
+    battery: int,
+    timestamp: float
+):
+    location["latitude"] = latitude
+    location["longitude"] = longitude
+    location["battery"] = battery
+    location["timestamp"] = timestamp
 
 
 def update_context(context: str):

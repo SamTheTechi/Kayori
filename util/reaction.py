@@ -63,6 +63,19 @@ opposite_emojis = {
     "Curious": ['😴', '😕'],
 }
 
+conflecting_mood = {
+    "Affection": ["Frustrated"],
+    "Frustrated": ["Affection"],
+    "Anxious": ["Curious"],
+    "Inspired": ["Anxious"],
+}
+
+reinforcing_mood = {
+    "Affection": ["Amused"],
+    "Inspired": ["Curious", "Amused"],
+    "Anxious": ["Frustrated"]
+}
+
 
 class Validation(BaseModel):
     Affection: confloat(ge=-1.0, le=1.0)
@@ -80,10 +93,20 @@ def parse(response: str, current: Dict[str, float]) -> Dict[str, float]:
 
 def update(target: Dict[str, float], current: Dict[str, float]) -> Dict[str, float]:
     for tone, strength in target.items():
+
+        # changed based on privous context
         if tone in current:
             multiplier = 0.1 + (config["nature"][tone] / 10 * 0.1)
-            current[tone] = round(
-                max(0, min(current[tone] + strength * multiplier, 1.0)), 2)
+            value = current[tone] + (strength * multiplier)
+
+        # mood drift to neutral
+            if value > 0.6:
+                value -= 0.025
+            elif value < 0.4:
+                value += 0.025
+
+            current[tone] = round(max(0, min(value, 1.0)), 2)
+    print(current)
     return current
 
 
@@ -98,7 +121,7 @@ async def analyseNature(user: str, getcontext, nature: Dict[str, float]) -> str:
         update(mood, nature)
         key = max(mood, key=mood.get)
         val = abs(max(mood.values()))
-        if (0.8 <= val):
+        if (0.85 <= val):
             if (val > 0):
                 return random.choice(emojis.get(key, ["❓"]))
             else:

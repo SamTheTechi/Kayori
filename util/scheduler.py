@@ -12,7 +12,6 @@ from util.balance_mood import balance_mood
 from util.store import (
     get_context,
     update_context,
-    get_last_time,
     natures,
 )
 
@@ -39,8 +38,7 @@ async def change_pfp(client):
 async def good_morning(
         client,
         agent_executer,
-        config, nature: Dict[str, float],
-        update_context,
+        config,
 ):
     try:
         user = await client.fetch_user(int(os.getenv("USER_ID")))
@@ -53,16 +51,16 @@ async def good_morning(
             HumanMessage("gm")
         ]
 
-        balance_mood(nature)
+        balance_mood(natures)
 
         async for chunk, metadata in agent_executer.astream(
             {"messages": val,
-             "Affection": str(nature["Affection"]),
-             "Amused": str(nature["Amused"]),
-             "Inspired": str(nature["Inspired"]),
-             "Frustrated": str(nature["Frustrated"]),
-             "Anxious": str(nature["Anxious"]),
-             "Curious": str(nature["Curious"]),
+             "Affection": str(natures["Affection"]),
+             "Amused": str(natures["Amused"]),
+             "Inspired": str(natures["Inspired"]),
+             "Frustrated": str(natures["Frustrated"]),
+             "Anxious": str(natures["Anxious"]),
+             "Curious": str(natures["Curious"]),
              },
             config,
             stream_mode="messages",
@@ -83,7 +81,6 @@ async def good_evening(
         client,
         agent_executer,
         config, nature: Dict[str, float],
-        update_context,
 ):
     try:
         user = await client.fetch_user(int(os.getenv("USER_ID")))
@@ -95,16 +92,16 @@ async def good_evening(
             ),
             HumanMessage("good evening!")
         ]
-        balance_mood(nature)
+        balance_mood(natures)
 
         async for chunk, metadata in agent_executer.astream(
             {"messages": val,
-             "Affection": str(nature["Affection"]),
-             "Amused": str(nature["Amused"]),
-             "Inspired": str(nature["Inspired"]),
-             "Frustrated": str(nature["Frustrated"]),
-             "Anxious": str(nature["Anxious"]),
-             "Curious": str(nature["Curious"]),
+             "Affection": str(natures["Affection"]),
+             "Amused": str(natures["Amused"]),
+             "Inspired": str(natures["Inspired"]),
+             "Frustrated": str(natures["Frustrated"]),
+             "Anxious": str(natures["Anxious"]),
+             "Curious": str(natures["Curious"]),
              },
             config,
             stream_mode="messages",

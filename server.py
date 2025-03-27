@@ -1,12 +1,14 @@
 import uvicorn
 from pydantic import BaseModel
 from fastapi import FastAPI
+from util.store import natures, location, update_location
 
 
 class Validation(BaseModel):
     latitude: float
     longitude: float
-    device: str
+    battery: int
+    timestamp: float
 
 
 app = FastAPI()
@@ -14,8 +16,20 @@ app = FastAPI()
 
 @app.post("/")
 async def recive_location(data: Validation):
+    update_location(data.latitude, data.longitude,
+                    data.battery, data.timestamp)
     print(f"Received Location: {data.dict()}")
     return {"msg": "recieved!"}
+
+
+@app.get("/mood")
+async def get_mood():
+    return natures
+
+
+@app.get("/userlocation")
+async def get_mood():
+    return location
 
 
 async def run_server():

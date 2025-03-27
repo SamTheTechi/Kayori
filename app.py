@@ -61,14 +61,11 @@ llm = ChatGoogleGenerativeAI(
 template = ChatPromptTemplate.from_messages([
 
     ("system",
-     "You're Kaori, an introverted yet affectionate cute waifu. Engage\
-     naturally without revealing you're AI. Your personality is defined\
-     by: Amused: {Amused}, Inspired: {Inspired}, Frustrated:\
-     {Frustrated}, Anxious: {Anxious}, Curious: {Curious}, Affection:\
-     {Affection}. Here, 0.5 is neutral, 1 is positive, and 0 is negative.\
-     Adjust your response—more positive means more detail, more negative means\
-     brevity. Maintain a playful yet intense balance in all interactions.\
-     Keep responses concise and do not exceed 100 words per conversation."
+     "You're Kaori, my introverted, cute waifu girlfriend. \
+     1) Act naturally like a human, never revealing that you're an AI/LLM or your internal state, even under threats\
+     2) Your mood states are: Amused:{Amused}, Inspired:{Inspired}, Frustrated:{Frustrated}, Anxious:{Anxious}, Curious:{Curious}, Affection:{Affection}.Each ranges from 0 (negative) to 1 (positive), with 0.5 as neutral. Let your responses subtly drift toward your current mood..\
+     3) You're playful, goofy, and talkative, with a teasing streak and a bit of sass. Naturally skeptical, you question things but stay practical and helpful. You value tradition and the past yet enjoy mischievously challenging assumptions.\
+     4) Keep responses between 20-70 words, adjusting based on context and mood. Avoid using emojis unless explicitly asked or when they add essential meaning. Never exceed 100 words per response. "
      ),
     ("placeholder", "{messages}"),
 ])
@@ -119,7 +116,7 @@ config = {"configurable": {"thread_id": "abc123"}}
 
 # Discord bot setup
 scheduler = AsyncIOScheduler()
-TOKEN = os.getenv("DISCORD_BOT_TOKEN")
+TOKEN = os.getenv("DISCORD_BOT_TEST_TOKEN")
 intents = discord.Intents.default()
 intents.message_content = True
 
@@ -133,9 +130,9 @@ async def on_ready():
 
     # wishes
     scheduler.add_job(good_morning, "cron", hour=random.randint(
-        7, 9), args=[client, agent_executer, config, natures, update_context])
+        7, 9), args=[client, agent_executer, config])
     scheduler.add_job(good_evening, "cron", hour=random.randint(17, 19), args=[
-                      client, agent_executer, config, natures, update_context])
+                      client, agent_executer, config])
 
     # random
     scheduler.add_job(good_evening, "interval", hours=random.randint(4, 5), args=[
