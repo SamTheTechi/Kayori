@@ -19,9 +19,10 @@ natures = {
     "Curious": 0.2,
 }
 
-time_eclipse = {
+last_response = {
     "time": 0,
 }
+
 
 # weather
 
@@ -47,8 +48,9 @@ def get_context():
 
 
 def update_last_time():
-    time_eclipse["time"] = int(datetime.now(timezone.utc).timestamp())
+    last_response["time"] = int(datetime.now(timezone.utc).timestamp())
 
 
 def get_last_time() -> int:
-    return int(datetime.now(timezone.utc).timestamp() - time_eclipse["time"])
+    return int((
+        datetime.now(timezone.utc).timestamp() - last_response["time"]) / 60)

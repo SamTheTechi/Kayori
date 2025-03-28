@@ -7,8 +7,6 @@ from util.store import natures, location, update_location
 class Validation(BaseModel):
     latitude: float
     longitude: float
-    battery: int
-    timestamp: float
 
 
 app = FastAPI()
@@ -28,7 +26,7 @@ async def get_mood():
 
 
 @app.get("/userlocation")
-async def get_mood():
+async def get_location():
     return location
 
 

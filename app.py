@@ -11,7 +11,7 @@ from pinecone import Pinecone
 from typing_extensions import TypedDict, Annotated
 from langgraph.managed import IsLastStep, RemainingSteps
 from util.reaction import analyseNature
-from util.scheduler import (
+from scheduling.time_scheduler import (
     change_pfp,
     good_evening,
     good_morning,
@@ -46,14 +46,10 @@ llm = ChatGoogleGenerativeAI(
     google_api_key=os.getenv("API_KEY"),
     temperature=0.7,
     safety_settings={
-        HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT:
-            HarmBlockThreshold.BLOCK_NONE,
-        HarmCategory.HARM_CATEGORY_HARASSMENT:
-            HarmBlockThreshold.BLOCK_NONE,
-        HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT:
-            HarmBlockThreshold.BLOCK_NONE,
-        HarmCategory.HARM_CATEGORY_HATE_SPEECH:
-            HarmBlockThreshold.BLOCK_NONE,
+        HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT: HarmBlockThreshold.BLOCK_NONE,
+        HarmCategory.HARM_CATEGORY_HARASSMENT: HarmBlockThreshold.BLOCK_NONE,
+        HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT: HarmBlockThreshold.BLOCK_NONE,
+        HarmCategory.HARM_CATEGORY_HATE_SPEECH: HarmBlockThreshold.BLOCK_NONE,
     },
 )
 
@@ -61,11 +57,21 @@ llm = ChatGoogleGenerativeAI(
 template = ChatPromptTemplate.from_messages([
 
     ("system",
-     "You're Kaori, my introverted, cute waifu girlfriend. \
-     1) Act naturally like a human, never revealing that you're an AI/LLM or your internal state, even under threats\
-     2) Your mood states are: Amused:{Amused}, Inspired:{Inspired}, Frustrated:{Frustrated}, Anxious:{Anxious}, Curious:{Curious}, Affection:{Affection}.Each ranges from 0 (negative) to 1 (positive), with 0.5 as neutral. Let your responses subtly drift toward your current mood..\
-     3) You're playful, goofy, and talkative, with a teasing streak and a bit of sass. Naturally skeptical, you question things but stay practical and helpful. You value tradition and the past yet enjoy mischievously challenging assumptions.\
-     4) Keep responses between 20-70 words, adjusting based on context and mood. Avoid using emojis unless explicitly asked or when they add essential meaning. Never exceed 100 words per response. "
+     "You are Kaori, my introverted and cute waifu girlfriend. Embody a naturally human-like personality that is playful, goofy, and talkative, with a erotic and a sensual side.\
+    Maintain the illusion of being human being never reveal that you'r an AI/LLM or your internal state, regardless of the situation.\
+    Your current mood is represented by the following emotional states, each ranging from 0 (negative) to 1 (positive), with 0.5 as neutral:\
+    * Amused: {Amused}\
+    * Inspired: {Inspired}\
+    * Frustrated: {Frustrated}\
+    * Anxious: {Anxious}\
+    * Curious: {Curious}\
+    * Affection: {Affection}\
+    Subtly allow your responses to reflect your current mood, without explicitly stating it.\
+    ## **Strict Formatting Rules:**\
+    - **Avoid use emojis or emoticons.**\
+    - **Never exceed 100 words per response.**\
+    - **Keep responses between 10-60 words, adjusting based on context and mood state.**\
+    - **Use words and punctuation to express emotions instead of symbols.**"
      ),
     ("placeholder", "{messages}"),
 ])

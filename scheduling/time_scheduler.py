@@ -30,7 +30,6 @@ async def change_pfp(client):
         with open(img_path, "rb") as image:
             pfp = image.read()
             await client.user.edit(avatar=pfp)
-            print("pfp updated")
     except Exception as e:
         print(f"error: {e}")
 
@@ -48,7 +47,7 @@ async def good_morning(
                 "Start the day with a warm and cheerful 'Good morning!' Wish the user a great day ahead in a friendly and uplifting way. "
                 "Keep it short, positive, and under 50 words."
             ),
-            HumanMessage("gm")
+            HumanMessage("good morning!")
         ]
 
         balance_mood(natures)
@@ -114,16 +113,5 @@ async def good_evening(
         update_context(response_text)
         await client.change_presence(status=discord.Status.idle)
 
-    except Exception as e:
-        print(e)
-
-
-async def random_convo(
-        client,
-        agent_executer,
-        config
-):
-    try:
-        return
     except Exception as e:
         print(e)
