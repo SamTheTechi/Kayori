@@ -1,8 +1,10 @@
 import os
+import pytz
 import random
 import discord
 import asyncio
 import firebase_admin
+from datetime import datetime
 from server import run_server
 from firebase_admin import credentials
 from dotenv import load_dotenv
@@ -57,6 +59,10 @@ llm = ChatGoogleGenerativeAI(
     },
 )
 
+
+current_time = datetime.now(pytz.utc).astimezone(
+    pytz.timezone("Asia/Kolkata")).isoformat()
+
 # ChatModel Persona: Kaori's defined personality
 template = ChatPromptTemplate.from_messages([
 
@@ -76,6 +82,8 @@ template = ChatPromptTemplate.from_messages([
     - **Never exceed 100 words per response.**\
     - **Keep responses between 10-60 words, adjusting based on context and mood state.**\
     - **Use words and punctuation to express emotions instead of symbols.**"
+     f"- **This is the current time {
+         current_time}, provided for your awareness**"
      ),
     ("placeholder", "{messages}"),
 ])
@@ -148,7 +156,7 @@ async def on_ready():
     # random
     scheduler.add_job(weather, "interval", hours=random.randint(14, 16), args=[
                       client, agent_executer, config])
-    scheduler.add_job(location_change, "interval", seconds=10, args=[
+    scheduler.add_job(location_change, "interval", minutes=30, args=[
                       client, agent_executer, config])
 
     print(f"Kaori is online as {client.user}")
@@ -167,18 +175,18 @@ async def on_message(message):
     final_text = ""
     tool_called = False
 
-    # docs = vector_store.similarity_search(
-    #     query=user_input,
-    #     k=2
-    # )
+    docs = vector_store.similarity_search(
+        query=user_input,
+        k=2
+    )
 
-    # context = [
-    #     SystemMessage(content="Relevant context from past interactions:"),
-    #     *[HumanMessage(content=f"Past context: {doc.page_content}") for doc in docs]
-    # ]
+    context = [
+        SystemMessage(content="Relevant context from past interactions:"),
+        *[HumanMessage(content=f"Past context: {doc.page_content}") for doc in docs]
+    ]
 
-    # val = [HumanMessage(user_input)] + context
-    val = [HumanMessage(user_input)]
+    val = [HumanMessage(user_input)] + context
+    # val = [HumanMessage(user_input)]
 
     reaction = await analyseNature(user_input, get_context, natures)
     if reaction.strip() != "":
@@ -220,10 +228,10 @@ async def on_message(message):
             update_context(response_text)
             update_last_time()
 
-    #  if final_text.strip() and not tool_called:
-        #   chunkted = split_text(final_text)
-        #   vector_store.add_documents(
-        #       [memory_constructor(chunk) for chunk in chunkted])
+    if final_text.strip() and not tool_called:
+        chunkted = split_text(final_text)
+        vector_store.add_documents(
+            [memory_constructor(chunk) for chunk in chunkted])
 
 
 async def main():

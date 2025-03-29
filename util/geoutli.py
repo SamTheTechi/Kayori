@@ -1,7 +1,20 @@
 import os
 import requests
 from dotenv import load_dotenv
+from geopy.geocoders import Nominatim
 load_dotenv()
+geolocator = Nominatim(user_agent="kaori")
+
+
+def get_location(lat, lon):
+    loca = geolocator.reverse(f"{str(lat)},{str(lon)}")
+    address = loca.raw.get('address', {})
+
+    state = address.get('state', 'Unknown')
+    suburb = address.get('suburb', 'Unknown')
+    city = address.get('city', address.get('town', 'Unknown'))
+
+    return {"suburb": suburb, "city": city, "state": state}
 
 
 def get_current_weather(lat, lon):
