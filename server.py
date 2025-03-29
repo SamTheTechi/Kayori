@@ -1,7 +1,7 @@
 import uvicorn
 from pydantic import BaseModel
 from fastapi import FastAPI
-from util.store import natures, location, update_location
+from util.store import natures, location, update_location, current_pfp
 
 
 class Validation(BaseModel):
@@ -25,7 +25,12 @@ async def get_mood():
     return natures
 
 
-@app.get("/userlocation")
+@app.get("/pfp")
+async def get_pfp():
+    return current_pfp["img"]
+
+
+@app.get("/location")
 async def get_location():
     return location
 

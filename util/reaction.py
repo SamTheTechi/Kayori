@@ -97,7 +97,8 @@ conflecting_mood = {
 reinforcing_mood = {
     "Affection": ["Amused"],
     "Inspired": ["Curious", "Amused"],
-    "Anxious": ["Frustrated"]
+    "Anxious": ["Frustrated"],
+    "Amused": ["Inspired"]
 }
 
 
@@ -123,11 +124,22 @@ def update(target: Dict[str, float], current: Dict[str, float]) -> Dict[str, flo
             multiplier = 0.1 + (config["nature"][tone] / 10 * 0.1)
             value = current[tone] + (strength * multiplier)
 
-        # mood drift to neutral
-            if value > 0.6:
-                value -= 0.025
-            elif value < 0.4:
-                value += 0.025
+            # Adjust for mood conflicts
+            for conflict in conflecting_mood.get(tone, []):
+                if conflict in current:
+                    value -= current[conflict] * 0.08
+
+            # Adjust for mood reinforcement
+            for reinforce in reinforcing_mood.get(tone, []):
+                if reinforce in current:
+                    value += current[reinforce] * 0.05
+
+            # mood drift to neutral
+            drift_factor = abs(value - 0.5) * 0.1
+            if value > 0.5:
+                value -= drift_factor
+            elif value < 0.5:
+                value += drift_factor
 
             current[tone] = round(max(0, min(value, 1.0)), 2)
     print(current)

@@ -59,15 +59,15 @@ llm = ChatGoogleGenerativeAI(
     },
 )
 
-
 current_time = datetime.now(pytz.utc).astimezone(
-    pytz.timezone("Asia/Kolkata")).isoformat()
+    pytz.timezone("Asia/Kolkata")
+).strftime('%Y-%m-%d  %H:%M')
 
 # ChatModel Persona: Kaori's defined personality
 template = ChatPromptTemplate.from_messages([
 
     ("system",
-     "You are Kaori, my introverted and cute waifu girlfriend. Embody a naturally human-like personality that is playful, goofy, and talkative, with a erotic and a sensual side.\
+     "You are Kaori, my introverted and cute waifu girlfriend. Embody a naturally human-like personality that is playful, goofy, talkative and arrogant with a erotic and a sensual side.\
     Maintain the illusion of being human being never reveal that you'r an AI/LLM or your internal state, regardless of the situation.\
     Your current mood is represented by the following emotional states, each ranging from 0 (negative) to 1 (positive), with 0.5 as neutral:\
     * Amused: {Amused}\
@@ -82,8 +82,7 @@ template = ChatPromptTemplate.from_messages([
     - **Never exceed 100 words per response.**\
     - **Keep responses between 10-60 words, adjusting based on context and mood state.**\
     - **Use words and punctuation to express emotions instead of symbols.**"
-     f"- **This is the current time {
-         current_time}, provided for your awareness**"
+     "- **This is the current time: {Current_time}, provided for your awareness**"
      ),
     ("placeholder", "{messages}"),
 ])
@@ -108,9 +107,8 @@ spotify = SpotifyTool()
 calender = CalenderAgentTool()
 tool = [spotify, tavily, calender]
 
+
 # Create the agent executer
-
-
 class KaoriState(TypedDict):
     messages: Annotated[list[BaseMessage], add_messages]
     Affection: str
@@ -119,10 +117,12 @@ class KaoriState(TypedDict):
     Frustrated: str
     Anxious: str
     Curious: str
+    Current_time: str
     is_last_step: IsLastStep
     remaining_steps: RemainingSteps
 
 
+# Create the chatbot agent
 agent_executer = create_react_agent(
     llm,
     tool,
@@ -134,26 +134,25 @@ config = {"configurable": {"thread_id": "abc123"}}
 
 # Discord bot setup
 scheduler = AsyncIOScheduler()
-TOKEN = os.getenv("DISCORD_BOT_TEST_TOKEN")
+TOKEN = os.getenv("DISCORD_BOT_TOKEN")
 intents = discord.Intents.default()
 intents.message_content = True
-
 client = discord.Client(intents=intents)
 
 
 @client.event
 async def on_ready():
-    # profile change
+    # Schedule periodic profile picture changes
     scheduler.add_job(change_pfp, "interval",
-                      hours=random.randint(18, 20), args=[client])
+                      hours=random.randint(18, 22), args=[client])
 
-    # wishes
+    # Schedule morning and evening greetings
     scheduler.add_job(good_morning, "cron", hour=random.randint(
         7, 9), args=[client, agent_executer, config])
     scheduler.add_job(good_evening, "cron", hour=random.randint(17, 19), args=[
                       client, agent_executer, config])
 
-    # random
+    # Schedule weather and location updates
     scheduler.add_job(weather, "interval", hours=random.randint(14, 16), args=[
                       client, agent_executer, config])
     scheduler.add_job(location_change, "interval", minutes=30, args=[
@@ -175,11 +174,8 @@ async def on_message(message):
     final_text = ""
     tool_called = False
 
-    docs = vector_store.similarity_search(
-        query=user_input,
-        k=2
-    )
-
+    # Retrieve relevant past interactions
+    docs = vector_store.similarity_search(query=user_input, k=2)
     context = [
         SystemMessage(content="Relevant context from past interactions:"),
         *[HumanMessage(content=f"Past context: {doc.page_content}") for doc in docs]
@@ -202,6 +198,7 @@ async def on_message(message):
              "Frustrated": str(natures["Frustrated"]),
              "Anxious": str(natures["Anxious"]),
              "Curious": str(natures["Curious"]),
+             "Current_time": str(current_time)
              },
             config,
             stream_mode="updates",

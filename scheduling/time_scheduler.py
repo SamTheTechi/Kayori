@@ -13,6 +13,7 @@ from util.store import (
     get_context,
     update_context,
     natures,
+    update_pfp
 )
 
 load_dotenv()
@@ -26,7 +27,9 @@ client = discord.Client(intents=intents)
 async def change_pfp(client):
     try:
         files = [f for f in os.listdir("./pfp")]
-        img_path = os.path.join("./pfp", random.choice(files))
+        img_name = random.choice(files)
+        img_path = os.path.join("./pfp", img_name)
+        update_pfp(img_path)
         with open(img_path, "rb") as image:
             pfp = image.read()
             await client.user.edit(avatar=pfp)

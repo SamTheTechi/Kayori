@@ -22,6 +22,9 @@ last_response = {
     "time": 0,
 }
 
+current_pfp = {
+    "img": "kaori1.webp"
+}
 
 # weather
 
@@ -40,6 +43,10 @@ def update_context(context: str):
     queue.enqueue(context)
 
 
+def update_pfp(img: str):
+    current_pfp["img"] = img
+
+
 def get_context():
     return queue.peek()
 
@@ -50,4 +57,4 @@ def update_last_time():
 
 def get_last_time() -> int:
     return int((
-        datetime.now(timezone.utc).timestamp() - last_response["time"]) / 60)
+        datetime.now(timezone.utc).timestamp() - last_response.get("time", 0)) / 60)
