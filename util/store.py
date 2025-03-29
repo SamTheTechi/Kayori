@@ -6,7 +6,6 @@ queue = FixedQueue(max_size=3)
 location = {
     "latitude": 0,
     "longitude": 0,
-    "battery": 0,
     "timestamp": 0,
 }
 
@@ -30,12 +29,10 @@ last_response = {
 def update_location(
     latitude: float,
     longitude: float,
-    battery: int,
     timestamp: float
 ):
     location["latitude"] = latitude
     location["longitude"] = longitude
-    location["battery"] = battery
     location["timestamp"] = timestamp
 
 

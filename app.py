@@ -11,6 +11,10 @@ from pinecone import Pinecone
 from typing_extensions import TypedDict, Annotated
 from langgraph.managed import IsLastStep, RemainingSteps
 from util.reaction import analyseNature
+from scheduling.adaptive_scheduler import (
+    weather,
+    location_change
+)
 from scheduling.time_scheduler import (
     change_pfp,
     good_evening,
@@ -132,7 +136,8 @@ client = discord.Client(intents=intents)
 @client.event
 async def on_ready():
     # profile change
-    scheduler.add_job(change_pfp, "interval", hours=18, args=[client])
+    scheduler.add_job(change_pfp, "interval",
+                      hours=random.randint(18, 20), args=[client])
 
     # wishes
     scheduler.add_job(good_morning, "cron", hour=random.randint(
@@ -141,7 +146,9 @@ async def on_ready():
                       client, agent_executer, config])
 
     # random
-    scheduler.add_job(good_evening, "interval", hours=random.randint(4, 5), args=[
+    scheduler.add_job(weather, "interval", hours=random.randint(14, 16), args=[
+                      client, agent_executer, config])
+    scheduler.add_job(location_change, "interval", seconds=10, args=[
                       client, agent_executer, config])
 
     print(f"Kaori is online as {client.user}")

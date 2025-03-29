@@ -7,6 +7,7 @@ from util.store import natures, location, update_location
 class Validation(BaseModel):
     latitude: float
     longitude: float
+    timestamp: float
 
 
 app = FastAPI()
@@ -14,8 +15,7 @@ app = FastAPI()
 
 @app.post("/")
 async def recive_location(data: Validation):
-    update_location(data.latitude, data.longitude,
-                    data.battery, data.timestamp)
+    update_location(data.latitude, data.longitude, data.timestamp)
     print(f"Received Location: {data.dict()}")
     return {"msg": "recieved!"}
 

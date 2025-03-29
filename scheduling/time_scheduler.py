@@ -30,6 +30,7 @@ async def change_pfp(client):
         with open(img_path, "rb") as image:
             pfp = image.read()
             await client.user.edit(avatar=pfp)
+            print("pfp updated")
     except Exception as e:
         print(f"error: {e}")
 
@@ -79,7 +80,7 @@ async def good_morning(
 async def good_evening(
         client,
         agent_executer,
-        config, nature: Dict[str, float],
+        config,
 ):
     try:
         user = await client.fetch_user(int(os.getenv("USER_ID")))

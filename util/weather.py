@@ -6,7 +6,7 @@ load_dotenv()
 
 def get_current_weather(lat, lon):
     url = f"http://api.weatherapi.com/v1/current.json?key={
-        os.getenv("WEATHER_API")}&q={lat},{lon}&aqi=no"
+        os.getenv("WEATHER_API")}&q={str(lat)},{str(lon)}&aqi=no"
     response = requests.get(url)
     if response.status_code == 200:
         data = response.json()
@@ -26,9 +26,8 @@ def get_current_weather(lat, lon):
 
 def get_forcast_weather(lat, lon):
     url = f"http://api.weatherapi.com/v1/forecast.json?key={
-        os.getenv('WEATHER_API')}&q={lat},{lon}&days=1&aqi=no&alerts=no"
+        os.getenv("WEATHER_API")}&q={str(lat)},{str(lon)}&days=1&aqi=no&alerts=no"
     response = requests.get(url)
-
     if response.status_code == 200:
         data = response.json()
         today_forecast = data["forecast"]["forecastday"][0]
