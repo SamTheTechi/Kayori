@@ -4,5 +4,6 @@
 __pycache__/
 *.pyc
 *.pyo
+pastMemories.py
 venv/
 .env

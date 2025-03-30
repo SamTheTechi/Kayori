@@ -6,11 +6,9 @@ from langchain_core.messages import (
     AIMessage,
     HumanMessage
 )
-from typing import Dict
 from dotenv import load_dotenv
 from util.balance_mood import balance_mood
 from util.store import (
-    get_context,
     update_context,
     natures,
     update_pfp
@@ -78,6 +76,21 @@ async def good_morning(
 
     except Exception as e:
         print(f"allpu {e}")
+
+
+async def mood_drift():
+    # stablise mood over time
+    for tone, strength in natures.items():
+        if (strength > 0.5):
+            natures[tone] -= 0.01
+        elif (strength < 0.5):
+            natures[tone] += 0.01
+
+
+async def mood_spike():
+    # give suddne mood spikes at certain interval
+    random_mood = random.choice(list(natures.keys()))
+    natures[random_mood] = round(random.uniform(0.75, 0.85), 2)
 
 
 async def good_evening(

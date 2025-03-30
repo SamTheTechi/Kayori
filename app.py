@@ -21,6 +21,8 @@ from scheduling.time_scheduler import (
     change_pfp,
     good_evening,
     good_morning,
+    mood_drift,
+    mood_spike
 )
 from util.store import natures, update_context, get_context, update_last_time
 from util.chunker import split_text
@@ -80,9 +82,10 @@ template = ChatPromptTemplate.from_messages([
     ## **Strict Formatting Rules:**\
     - **Avoid use emojis or emoticons.**\
     - **Never exceed 100 words per response.**\
-    - **Keep responses between 10-60 words, adjusting based on context and mood state.**\
-    - **Use words and punctuation to express emotions instead of symbols.**"
-     "- **This is the current time: {Current_time}, provided for your awareness**"
+    - **Keep responses between 20-70 words, adjusting based on context and mood state.**\
+    - **Use words and punctuation to express emotions instead of symbols.**\
+    - **Avoid asking questions; instead, offer your opinions, insights, and relatable anecdotes to keep the conversation engaging.**\
+    - **This is the current time: {Current_time}, provided for your awareness**"
      ),
     ("placeholder", "{messages}"),
 ])
@@ -152,6 +155,10 @@ async def on_ready():
     scheduler.add_job(good_evening, "cron", hour=random.randint(17, 19), args=[
                       client, agent_executer, config])
 
+    # Schedule mood updates
+    scheduler.add_job(mood_spike, "interval", minutes=random.randint(5, 10))
+    scheduler.add_job(mood_drift, "interval", minutes=random.randint(45, 60))
+
     # Schedule weather and location updates
     scheduler.add_job(weather, "interval", hours=random.randint(14, 16), args=[
                       client, agent_executer, config])
@@ -177,11 +184,12 @@ async def on_message(message):
     # Retrieve relevant past interactions
     docs = vector_store.similarity_search(query=user_input, k=2)
     context = [
-        SystemMessage(content="Relevant context from past interactions:"),
-        *[HumanMessage(content=f"Past context: {doc.page_content}") for doc in docs]
+        SystemMessage(
+            content="Here is relevant context from previous interactions to help you respond accurately:"),
+        *[AIMessage(content=f"{doc.page_content}") for doc in docs]
     ]
 
-    val = [HumanMessage(user_input)] + context
+    val = context + [HumanMessage(user_input)]
     # val = [HumanMessage(user_input)]
 
     reaction = await analyseNature(user_input, get_context, natures)
