@@ -2,8 +2,8 @@ import os
 import re
 import pytz
 import discord
-from datetime import datetime, timezone
-from pinecone import Pinecone
+from datetime import datetime
+from pinecone import Pinecone, ServerlessSpec
 from geopy.distance import geodesic
 from dotenv import load_dotenv
 from langchain_core.messages import (
@@ -11,13 +11,13 @@ from langchain_core.messages import (
     AIMessage,
     HumanMessage
 )
-from util.document import location_constructor
+from util.chunker import split_text
+from util.document import location_constructor, memory_constructor
 from util.store import location, natures, update_context
 from util.geoutli import get_forcast_weather, get_location
 from langchain_pinecone import PineconeVectorStore
 from langchain_community.embeddings import HuggingFaceInferenceAPIEmbeddings
 from langchain_google_genai import ChatGoogleGenerativeAI
-from datetime import datetime, timezone
 from langchain_core.prompts import (
     ChatPromptTemplate,
     SystemMessagePromptTemplate,
@@ -32,6 +32,13 @@ client = discord.Client(intents=intents)
 
 
 pc = Pinecone(api_key=os.getenv("PINECONE2"))
+
+if "location" not in [index["name"] for index in pc.list_indexes()]:
+    spec = ServerlessSpec(
+        cloud='aws',
+        region='us-east-1'
+    )
+    pc.create_index("location", dimension=768, spec=spec)
 pineconeIndex = pc.Index("location")
 
 embedding = HuggingFaceInferenceAPIEmbeddings(
@@ -60,8 +67,6 @@ template1 = ChatPromptTemplate.from_messages([
 
 def weather_agent(data: str) -> str:
     prompt = (template1 | llm).invoke({"data": data})
-    print(data)
-    print(prompt.content)
     return prompt.content
 
 
@@ -152,6 +157,7 @@ async def location_change(
         client,
         agent_executer,
         config,
+        vector_str
 ):
     try:
         user = await client.fetch_user(int(os.getenv("USER_ID")))
@@ -161,6 +167,7 @@ async def location_change(
         if not response:
             return
 
+        docs = vector_str.similarity_search(query=f"{suburb},{city}", k=2)
         response_text = ""
 
         val = [
@@ -169,6 +176,7 @@ async def location_change(
                 Tease them playfully if it's unexpected, or acknowledge it subtly if anticipated. \
                 Keep it casual and human-like—no robotic responses. Avoide greeting"
             ),
+            *[AIMessage(content=f"{doc.page_content}") for doc in docs],
             HumanMessage("** User location change detected **")
         ]
 
@@ -188,6 +196,9 @@ async def location_change(
                 response_text += chunk.content
 
         await user.send(response_text)
+        chunkted = split_text(response_text)
+        vector_str.add_documents(
+            [memory_constructor(chunk) for chunk in chunkted])
         update_context(response_text)
 
     except Exception as e:

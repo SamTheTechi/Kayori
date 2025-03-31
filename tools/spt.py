@@ -15,7 +15,7 @@ class SpotifyTool(BaseTool):
         "A tool for controlling the user's Spotify playback. "
         "Supports commands to play/pause music, skip tracks, go to the previous track, "
         "get currently playing track information, adjust volume, toggle shuffle, and "
-        "queue a surprise track from recent plays or the queue."
+        "queue a random track from recent plays or the queue."
     )
     _sp: spotipy.Spotify = PrivateAttr()
 
@@ -94,7 +94,7 @@ class SpotifyTool(BaseTool):
         except Exception as e:
             return f"Error toggling shuffle: {e}"
 
-    def _surprise_me(self) -> str:
+    def _play_random(self) -> str:
         try:
             queue = self._sp.queue().get("queue", [])
             if not queue or len(queue) < 5:
@@ -119,7 +119,7 @@ class SpotifyTool(BaseTool):
             command: Literal["play&pause", "next", "skip"
                              "previous", "track_info",
                              "volume", "toggle_suffle",
-                             "surprise_me"
+                             "play_random"
                              ],
             volume: Optional[int] = None
     ) -> str:
@@ -134,13 +134,13 @@ class SpotifyTool(BaseTool):
             return self._track_info()
         elif command in ["toggle_suffle"]:
             return self._toggle_shuffle()
-        elif command in ["surprise_me"]:
-            return self._surprise_me()
+        elif command in ["play_random"]:
+            return self._play_random()
         elif command in ["volume"]:
             if volume is None:
                 return "Please provide a volume level."
             return self._set_volume(int(volume))
         else:
             return f"Command '{command}' not recognized. Available commands:\
-            play_pause, next/skip , previous, track_info, toggle_suffle ,surprise_me\
+            play_pause, next/skip , previous, track_info, toggle_suffle , play_random\
             , volume."

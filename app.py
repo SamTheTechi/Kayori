@@ -9,7 +9,7 @@ from server import run_server
 from firebase_admin import credentials
 from dotenv import load_dotenv
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
-from pinecone import Pinecone
+from pinecone import Pinecone, ServerlessSpec
 from typing_extensions import TypedDict, Annotated
 from langgraph.managed import IsLastStep, RemainingSteps
 from util.reaction import analyseNature
@@ -92,6 +92,13 @@ template = ChatPromptTemplate.from_messages([
 
 # Pinecone and Firebase init
 pc = Pinecone(api_key=os.getenv("PINECONE"))
+if "kaori" not in [index["name"] for index in pc.list_indexes()]:
+    spec = ServerlessSpec(
+        cloud='aws',
+        region='us-east-1'
+    )
+    pc.create_index("kaori", dimension=768, spec=spec)
+
 pineconeIndex = pc.Index("kaori")
 
 embedding = HuggingFaceInferenceAPIEmbeddings(
@@ -147,7 +154,7 @@ client = discord.Client(intents=intents)
 async def on_ready():
     # Schedule periodic profile picture changes
     scheduler.add_job(change_pfp, "interval",
-                      hours=random.randint(18, 22), args=[client])
+                      seconds=10, args=[client])
 
     # Schedule morning and evening greetings
     scheduler.add_job(good_morning, "cron", hour=random.randint(
@@ -156,14 +163,14 @@ async def on_ready():
                       client, agent_executer, config])
 
     # Schedule mood updates
-    scheduler.add_job(mood_spike, "interval", minutes=random.randint(5, 10))
-    scheduler.add_job(mood_drift, "interval", minutes=random.randint(45, 60))
+    scheduler.add_job(mood_drift, "interval", minutes=random.randint(5, 8))
+    scheduler.add_job(mood_spike, "interval", minutes=random.randint(45, 60))
 
     # Schedule weather and location updates
     scheduler.add_job(weather, "interval", hours=random.randint(14, 16), args=[
                       client, agent_executer, config])
     scheduler.add_job(location_change, "interval", minutes=30, args=[
-                      client, agent_executer, config])
+                      client, agent_executer, config, vector_store])
 
     print(f"Kaori is online as {client.user}")
     scheduler.start()

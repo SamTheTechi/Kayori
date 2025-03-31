@@ -1,6 +1,6 @@
 import os
 from dotenv import load_dotenv
-from pinecone import Pinecone
+from pinecone import Pinecone, ServerlessSpec
 from util.document import memory_constructor
 from langchain_pinecone import PineconeVectorStore
 from langchain_community.embeddings import HuggingFaceInferenceAPIEmbeddings
@@ -8,6 +8,13 @@ from langchain_community.embeddings import HuggingFaceInferenceAPIEmbeddings
 load_dotenv()
 
 pc = Pinecone(api_key=os.getenv("PINECONE"))
+if "kaori" not in [index["name"] for index in pc.list_indexes()]:
+    spec = ServerlessSpec(
+        cloud='aws',
+        region='us-east-1'
+    )
+    pc.create_index("kaori", dimension=768, spec=spec)
+
 pineconeIndex = pc.Index("kaori")
 
 embedding = HuggingFaceInferenceAPIEmbeddings(
