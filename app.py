@@ -154,7 +154,7 @@ client = discord.Client(intents=intents)
 async def on_ready():
     # Schedule periodic profile picture changes
     scheduler.add_job(change_pfp, "interval",
-                      seconds=10, args=[client])
+                      hour=random.randint(17, 20), args=[client])
 
     # Schedule morning and evening greetings
     scheduler.add_job(good_morning, "cron", hour=random.randint(
