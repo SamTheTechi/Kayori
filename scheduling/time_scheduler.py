@@ -82,9 +82,9 @@ async def mood_drift():
     # stablise mood over time
     for tone, strength in natures.items():
         if (strength > 0.5):
-            natures[tone] -= 0.01
+            natures[tone] = round(strength - 0.01, 2)
         elif (strength < 0.5):
-            natures[tone] += 0.01
+            natures[tone] = round(strength + 0.01, 2)
 
 
 async def mood_spike():

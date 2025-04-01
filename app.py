@@ -52,7 +52,7 @@ memory = MemorySaver()
 llm = ChatGoogleGenerativeAI(
     model="gemini-2.0-flash",
     google_api_key=os.getenv("API_KEY"),
-    temperature=0.7,
+    temperature=0.6,
     safety_settings={
         HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT: HarmBlockThreshold.BLOCK_NONE,
         HarmCategory.HARM_CATEGORY_HARASSMENT: HarmBlockThreshold.BLOCK_NONE,
@@ -82,7 +82,7 @@ template = ChatPromptTemplate.from_messages([
     ## **Strict Formatting Rules:**\
     - **Avoid use emojis or emoticons.**\
     - **Never exceed 100 words per response.**\
-    - **Keep responses between 20-70 words, adjusting based on context and mood state.**\
+    - **Keep responses between 10-60 words, adjusting based on context and mood state.**\
     - **Use words and punctuation to express emotions instead of symbols.**\
     - **Avoid asking questions; instead, offer your opinions, insights, and relatable anecdotes to keep the conversation engaging.**\
     - **This is the current time: {Current_time}, provided for your awareness**"
@@ -153,27 +153,31 @@ client = discord.Client(intents=intents)
 @client.event
 async def on_ready():
     # Schedule periodic profile picture changes
-    scheduler.add_job(change_pfp, "interval",
-                      hour=random.randint(17, 20), args=[client])
+    try:
+        scheduler.add_job(change_pfp, "interval",
+                          hours=random.randint(17, 20), args=[client])
 
-    # Schedule morning and evening greetings
-    scheduler.add_job(good_morning, "cron", hour=random.randint(
-        7, 9), args=[client, agent_executer, config])
-    scheduler.add_job(good_evening, "cron", hour=random.randint(17, 19), args=[
-                      client, agent_executer, config])
+        # Schedule morning and evening greetings
+        scheduler.add_job(good_morning, "cron", hour=random.randint(
+            7, 9), args=[client, agent_executer, config])
+        scheduler.add_job(good_evening, "cron", hour=random.randint(17, 19), args=[
+                          client, agent_executer, config])
 
-    # Schedule mood updates
-    scheduler.add_job(mood_drift, "interval", minutes=random.randint(5, 8))
-    scheduler.add_job(mood_spike, "interval", minutes=random.randint(45, 60))
+        # Schedule mood updates
+        scheduler.add_job(mood_drift, "interval", minutes=random.randint(5, 8))
+        scheduler.add_job(mood_spike, "interval",
+                          minutes=random.randint(45, 60))
 
-    # Schedule weather and location updates
-    scheduler.add_job(weather, "interval", hours=random.randint(14, 16), args=[
-                      client, agent_executer, config])
-    scheduler.add_job(location_change, "interval", minutes=30, args=[
-                      client, agent_executer, config, vector_store])
+        # Schedule weather and location updates
+        scheduler.add_job(weather, "interval", hours=random.randint(14, 16), args=[
+                          client, agent_executer, config])
+        scheduler.add_job(location_change, "interval", minutes=30, args=[
+                          client, agent_executer, config, vector_store])
 
-    print(f"Kaori is online as {client.user}")
-    scheduler.start()
+        print(f"Kaori is online as {client.user}")
+        scheduler.start()
+    except Exception as e:
+        print(f"error: {e}")
 
 
 @client.event
@@ -187,12 +191,12 @@ async def on_message(message):
     response_text = ""
     final_text = ""
     tool_called = False
-
+    await message.channel.typing()
     # Retrieve relevant past interactions
     docs = vector_store.similarity_search(query=user_input, k=2)
     context = [
         SystemMessage(
-            content="Here is relevant context from previous interactions to help you respond accurately:"),
+            content="Here is relevant context from previous interactions to help you respond accurately"),
         *[AIMessage(content=f"{doc.page_content}") for doc in docs]
     ]
 
@@ -203,36 +207,34 @@ async def on_message(message):
     if reaction.strip() != "":
         await message.add_reaction(reaction)
 
-    async with message.channel.typing():
+    async for chunk in agent_executer.astream(
+        {"messages": val,
+         "Affection": str(natures["Affection"]),
+         "Amused": str(natures["Amused"]),
+         "Inspired": str(natures["Inspired"]),
+         "Frustrated": str(natures["Frustrated"]),
+         "Anxious": str(natures["Anxious"]),
+         "Curious": str(natures["Curious"]),
+         "Current_time": str(current_time)
+         },
+        config,
+        stream_mode="updates",
+    ):
+        if 'agent' in chunk:
+            messages = chunk['agent'].get('messages', [])
+            for msg in messages:
+                if isinstance(msg, AIMessage):
+                    if msg.tool_calls:
+                        tool_called = True
 
-        async for chunk in agent_executer.astream(
-            {"messages": val,
-             "Affection": str(natures["Affection"]),
-             "Amused": str(natures["Amused"]),
-             "Inspired": str(natures["Inspired"]),
-             "Frustrated": str(natures["Frustrated"]),
-             "Anxious": str(natures["Anxious"]),
-             "Curious": str(natures["Curious"]),
-             "Current_time": str(current_time)
-             },
-            config,
-            stream_mode="updates",
-        ):
-            if 'agent' in chunk:
-                messages = chunk['agent'].get('messages', [])
-                for msg in messages:
-                    if isinstance(msg, AIMessage):
-                        if msg.tool_calls:
-                            tool_called = True
-
-                        if tool_called:
-                            if response_text.strip():
-                                await message.author.send(response_text)
-                                final_text = response_text
-                                response_text = ""
-                            response_text += msg.content
-                        else:
-                            response_text += msg.content
+                    if tool_called:
+                        if response_text.strip():
+                            await message.author.send(response_text)
+                            final_text = response_text
+                            response_text = ""
+                        response_text += msg.content
+                    else:
+                        response_text += msg.content
 
         if response_text.strip():
             await message.author.send(response_text)
