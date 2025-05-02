@@ -90,7 +90,8 @@ async def mood_drift():
 async def mood_spike():
     # give suddne mood spikes at certain interval
     random_mood = random.choice(list(natures.keys()))
-    natures[random_mood] = round(random.uniform(0.75, 0.85), 2)
+    natures[random_mood] += round(random.uniform(
+        0.25, 0.35), 2) * random.choice([-1, 1])
 
 
 async def good_evening(

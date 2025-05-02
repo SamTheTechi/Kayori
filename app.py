@@ -164,9 +164,9 @@ async def on_ready():
                           client, agent_executer, config])
 
         # Schedule mood updates
-        scheduler.add_job(mood_drift, "interval", minutes=random.randint(5, 8))
+        scheduler.add_job(mood_drift, "interval", minutes=random.randint(4, 7))
         scheduler.add_job(mood_spike, "interval",
-                          minutes=random.randint(45, 60))
+                          minutes=random.randint(50, 60))
 
         # Schedule weather and location updates
         scheduler.add_job(weather, "interval", hours=random.randint(14, 16), args=[
@@ -182,18 +182,20 @@ async def on_ready():
 
 @client.event
 async def on_message(message):
-
     if message.author == client.user or not isinstance(
             message.channel, discord.DMChannel):
         return
 
+    print(1)
     user_input = message.content
     response_text = ""
     final_text = ""
     tool_called = False
-    await message.channel.typing()
+
+    print(2)
     # Retrieve relevant past interactions
     docs = vector_store.similarity_search(query=user_input, k=2)
+    print(3)
     context = [
         SystemMessage(
             content="Here is relevant context from previous interactions to help you respond accurately"),
@@ -201,40 +203,44 @@ async def on_message(message):
     ]
 
     val = context + [HumanMessage(user_input)]
+    print(4)
     # val = [HumanMessage(user_input)]
-
     reaction = await analyseNature(user_input, get_context, natures)
     if reaction.strip() != "":
         await message.add_reaction(reaction)
 
-    async for chunk in agent_executer.astream(
-        {"messages": val,
-         "Affection": str(natures["Affection"]),
-         "Amused": str(natures["Amused"]),
-         "Inspired": str(natures["Inspired"]),
-         "Frustrated": str(natures["Frustrated"]),
-         "Anxious": str(natures["Anxious"]),
-         "Curious": str(natures["Curious"]),
-         "Current_time": str(current_time)
-         },
-        config,
-        stream_mode="updates",
-    ):
-        if 'agent' in chunk:
-            messages = chunk['agent'].get('messages', [])
-            for msg in messages:
-                if isinstance(msg, AIMessage):
-                    if msg.tool_calls:
-                        tool_called = True
+    print(5)
+    async with message.channel.typing():
+        async for chunk in agent_executer.astream(
+            {"messages": val,
+             "Affection": str(natures["Affection"]),
+             "Amused": str(natures["Amused"]),
+             "Inspired": str(natures["Inspired"]),
+             "Frustrated": str(natures["Frustrated"]),
+             "Anxious": str(natures["Anxious"]),
+             "Curious": str(natures["Curious"]),
+             "Current_time": str(current_time)
+             },
+            config,
+            stream_mode="updates",
+        ):
+            print(5)
+            if 'agent' in chunk:
+                messages = chunk['agent'].get('messages', [])
+                for msg in messages:
+                    if isinstance(msg, AIMessage):
+                        if msg.tool_calls:
+                            tool_called = True
 
-                    if tool_called:
-                        if response_text.strip():
-                            await message.author.send(response_text)
-                            final_text = response_text
-                            response_text = ""
-                        response_text += msg.content
-                    else:
-                        response_text += msg.content
+                        if tool_called:
+                            if response_text.strip():
+                                await message.author.send(response_text)
+                                final_text = response_text
+                                response_text = ""
+
+                            response_text += msg.content
+                        else:
+                            response_text += msg.content
 
         if response_text.strip():
             await message.author.send(response_text)

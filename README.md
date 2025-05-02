@@ -1,10 +1,10 @@
 
-![Kaori Banner](banner.webp)
+![kayori Banner](banner.webp)
 
 
-# 🌸 Kaori 🌸
+# 🌸 Kayori 🌸
 
-Kaori is an interactive Multi Agentic girlfriend designed to deliver a charming and engaging conversational experience. She adapts her personality and mood based on past interactions,also capiable to using multiple tools and services to create dynamic, personalized experience.
+kayori is an interactive Multi Agentic girlfriend designed to deliver a charming and engaging conversational experience. She adapts her personality and mood based on past interactions,also capiable to using multiple tools and services to create dynamic, personalized experience.
 
 
 ## Table of Contents
@@ -18,9 +18,9 @@ Kaori is an interactive Multi Agentic girlfriend designed to deliver a charming 
 
 ## Features
 
-- **Conversational Agent:** Kaori is designed with a playful, human-like personality that adapts its mood based on predefined emotional states.
+- **Conversational Agent:** kayori is designed with a playful, human-like personality that adapts its mood based on predefined emotional states.
 - **Permanent momory:** Uses Pinecone for storing and retrieving context from past interactions.
-- **Location base exprience:** Automates tasks such as updating profile pictures, sending personalized greetings, messaging upon location changes, and weather upates daily.
+- **Automates tasks** such as updating profile pictures, sending personalized greetings, messaging upon location changes, and weather upates daily.
 - **Tool Integrations:** Connects with Spotify, Google calender, Tavily search, and more for to enhance user experience and engagement..
 - **Discord Bot:** Operates on Discord to provide real-time conversation and interaction.
 
@@ -80,7 +80,6 @@ TAVILY_API_KEY=
 EMBD=                              # HuggingFace API key for embedding model
 API_KEY=                           # Google Gemini API key
 PINECONE=                          # Pinecone API key
-PINECONE2=                         # Secondary Pinecone API key if needed or same can be used
 WEATHER_API=                       # Weather API key
 
 # Discord Bot Credentials
@@ -108,59 +107,34 @@ python app.py
 
 To run the application in a Docker container, use the Dockerfile provided in the project.
 
-```dockerfile
-FROM python:3.13.2-slim
-
-WORKDIR /home/Asuna
-
-RUN apt-get update && apt-get install -y \
-  libgl1-mesa-glx \
-  gcc \
-  build-essential \
-  && rm -rf /var/lib/apt/lists/*
-
-COPY requirements.txt .
-
-RUN pip install --no-cache-dir -r requirements.txt
-
-RUN pip install --upgrade pip
-
-COPY . .
-
-EXPOSE 8080
-
-CMD [ "python", "app.py" ]
-```
-
-### Building and Running the Docker Container
-
 1. **Build the Docker Image:**
 
    ```bash
-   docker build -t kaori .
+   docker build -t kayori:latest .
    ```
 
 2. **Run the Container:**
 
    ```bash
-   docker run -p 80:8080 --env-file .env kaori
+   docker run -p 80:8080 --env-file .env kayori
    ```
 
 ## Additional Notes
 
 ### Memory populate
 
-To get an out-of-the-box experience, run the following command for a better experience:
+To get an memory experience, run the following command for a better experience:
 
 ```bash
 python pastMemories.py
 ```
+
 This script contains sample conversation pieces to populate the vector database.
 You can edit the sample conversation pieces to customize your experience with the Karoi chatbot.
 
 ### Tasker setup
 
-To enable Kaori to send location-based weather updates, you need to set up Tasker on your mobile device:
+To enable kayori to send location-based weather updates, you need to set up Tasker on your mobile device:
 
 1. **Download and Install Tasker:**
    - Install Tasker from the [Google Play Store](https://play.google.com/store/apps/details?id=net.dinglisch.android.taskerm).
@@ -204,9 +178,9 @@ To enable Kaori to send location-based weather updates, you need to set up Taske
 7. **Enable Tasker:**
    - Ensure Tasker is enabled so it runs in the background.
 
-Now, Tasker will periodically send your location data to the Kaori server, allowing it to get to know more about you ;).
+Now, Tasker will periodically send your location data to the kayori server, allowing it to get to know more about you ;).
 
 ---
 For any further questions or issues, please refer to the documentation of the respective APIs and services integrated within this project or just contact the SamTheTechi
 
-## Hit a star for supporting me and my Kaori!
+## Hit a star for supporting me and my kayori!
