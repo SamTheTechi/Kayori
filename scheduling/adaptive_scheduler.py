@@ -16,8 +16,9 @@ from util.document import location_constructor, memory_constructor
 from util.store import location, natures, update_context
 from util.geoutli import get_forcast_weather, get_location
 from langchain_pinecone import PineconeVectorStore
-from langchain_community.embeddings import HuggingFaceInferenceAPIEmbeddings
-from langchain_google_genai import ChatGoogleGenerativeAI
+from langchain_google_genai import (
+    GoogleGenerativeAIEmbeddings, ChatGoogleGenerativeAI
+)
 from langchain_core.prompts import (
     ChatPromptTemplate,
     SystemMessagePromptTemplate,
@@ -41,24 +42,26 @@ if "location" not in [index["name"] for index in pc.list_indexes()]:
     pc.create_index("location", dimension=768, spec=spec)
 pineconeIndex = pc.Index("location")
 
-embedding = HuggingFaceInferenceAPIEmbeddings(
-    api_key=os.getenv('EMBD'),
-    model_name="sentence-transformers/all-mpnet-base-v2"
+embedding = GoogleGenerativeAIEmbeddings(
+    google_api_key=os.getenv("API_KEY"),
+    model="models/embedding-001"
 )
 
-vector_store = PineconeVectorStore(embedding=embedding, index=pineconeIndex)
+vector_store = PineconeVectorStore(
+    embedding=embedding, index=pineconeIndex)
+
 
 llm = ChatGoogleGenerativeAI(
     model="gemini-2.0-flash-lite",
     google_api_key=os.getenv("API_KEY"),
-    temperature=0.2
+    temperature=0.4
 )
 
 
-template1 = ChatPromptTemplate.from_messages([
+template = ChatPromptTemplate.from_messages([
     SystemMessagePromptTemplate.from_template(
         "You are a weather forecast agent. Your task is to analyze the provided JSON data, which contains timestamps and weather conditions.\
-        Generate a **40-word summary** of today's weather in a format that is easy for other LLMs to understand.\
+        Generate a **50-word summary** of today's weather in a format that is easy for other LLMs to understand.\
         forcast_data {data}"
     ),
     HumanMessagePromptTemplate.from_template("how's the todays weather?")
@@ -66,7 +69,7 @@ template1 = ChatPromptTemplate.from_messages([
 
 
 def weather_agent(data: str) -> str:
-    prompt = (template1 | llm).invoke({"data": data})
+    prompt = (template | llm).invoke({"data": data})
     return prompt.content
 
 

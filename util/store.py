@@ -14,8 +14,8 @@ natures = {
     "Amused": 0.2,
     "Inspired": 0.2,
     "Frustrated": 0.8,
-    "Anxious": 0.2,
-    "Curious": 0.2,
+    "Concerned": 0.5,
+    "Curious": 0.5,
 }
 
 last_response = {

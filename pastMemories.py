@@ -3,26 +3,26 @@ from dotenv import load_dotenv
 from pinecone import Pinecone, ServerlessSpec
 from util.document import memory_constructor
 from langchain_pinecone import PineconeVectorStore
-from langchain_community.embeddings import HuggingFaceInferenceAPIEmbeddings
+from langchain_google_genai import GoogleGenerativeAIEmbeddings
 
 load_dotenv()
 
 pc = Pinecone(api_key=os.getenv("PINECONE"))
-if "kaori" not in [index["name"] for index in pc.list_indexes()]:
-    spec = ServerlessSpec(
+if "kayori" not in [index["name"] for index in pc.list_indexes()]:
+    pc.create_index("kayori", dimension=768, spec=ServerlessSpec(
         cloud='aws',
         region='us-east-1'
-    )
-    pc.create_index("kaori", dimension=768, spec=spec)
+    ))
+pineconeIndex = pc.Index("kayori")
 
-pineconeIndex = pc.Index("kaori")
-
-embedding = HuggingFaceInferenceAPIEmbeddings(
-    api_key=os.getenv('EMBD'),
-    model_name="sentence-transformers/all-mpnet-base-v2"
+embedding = GoogleGenerativeAIEmbeddings(
+    google_api_key=os.getenv("API_KEY"),
+    model="models/embedding-001"
 )
 
 vector_store = PineconeVectorStore(embedding=embedding, index=pineconeIndex)
+
+print(os.getenv('HUGGINGFACEHUB_API_KEY'))
 
 chunkted = [
     "Aww, that's sweet of you. So, did you have something in mind, or were you just making sure I didn't, like, vanish into thin air? Heh",

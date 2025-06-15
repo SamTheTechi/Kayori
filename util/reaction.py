@@ -38,10 +38,10 @@ template = ChatPromptTemplate.from_messages([
         determine its emotional tone shift.\
         ### **Response Format:**\
         - Strictly return all categories ('Affection', 'Amused', 'Inspired', \
-        'Frustrated', 'Anxious', 'Curious') with their intensity as floats \
+        'Frustrated', 'Concerned', 'Curious') with their intensity as floats \
         from -1.0 (strong negative) to 1.0 (strong positive).\
         - Format: `tone:strength`, separated by commas. Example: \
-        `Affection:0.8, Amused:-0.2, Inspired:0.5, Frustrated:0.0, Anxious:-0.5, Curious:0.3`.\
+        `Affection:0.8, Amused:-0.2, Inspired:0.5, Frustrated:0.0, Concerned:-0.5, Curious:0.3`.\
         - Never omit a category, even if its value is 0.\
         ### **Rules for Mood Changes:**\
         - Base mood shifts on sentiment, emotional triggers, and conversational flow.\
@@ -75,7 +75,7 @@ emojis = {
     "Amused": ['😂', '🤣'],
     "Inspired": ['✨', '💡'],
     "Frustrated": ['😤', '😡'],
-    "Anxious": ['😨', '🥺'],
+    "Concerned": ['😨', '🥺'],
     "Curious": ['🤔', '👀', '🧐'],
 }
 opposite_emojis = {
@@ -83,7 +83,7 @@ opposite_emojis = {
     "Amused": ['🙄', '😑'],
     "Inspired": ['😞', '🙃'],
     "Frustrated": ['😌', '🤗'],
-    "Anxious": ['😎', '😃'],
+    "Concerned": ['😎', '😃'],
     "Curious": ['😴', '😕'],
 }
 
@@ -97,7 +97,7 @@ conflecting_mood = {
 reinforcing_mood = {
     "Affection": ["Amused"],
     "Inspired": ["Curious", "Amused"],
-    "Anxious": ["Frustrated"],
+    "Concerned": ["Frustrated"],
     "Amused": ["Inspired"]
 }
 
@@ -107,7 +107,7 @@ class Validation(BaseModel):
     Amused: confloat(ge=-1.0, le=1.0)
     Inspired: confloat(ge=-1.0, le=1.0)
     Frustrated: confloat(ge=-1.0, le=1.0)
-    Anxious: confloat(ge=-1.0, le=1.0)
+    Concerned: confloat(ge=-1.0, le=1.0)
     Curious: confloat(ge=-1.0, le=1.0)
 
 
