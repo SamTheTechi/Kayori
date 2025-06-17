@@ -52,12 +52,12 @@ template = ChatPromptTemplate.from_messages([
         - If the user asks an **intimate or affectionate question**, increase \
         'Affection' positively.\
         - If the user is **joking or playful**, increase 'Amused' but reduce \
-        'Anxious' if relevant.\
+        'Concerned' if relevant.\
         - If the user challenges Kaori or expresses **doubt**, increase \
         'Frustrated' slightly (but never above 0.5 unless it's outright rude).\
         - If the user asks deep, thought-provoking, or philosophical \
         questions, increase 'Curious' and possibly 'Inspired'.\
-        - If the user expresses **fear or insecurity**, increase 'Anxious' \
+        - If the user expresses **fear or insecurity**, increase 'Concerned' \
         and decrease 'Amused'.\
         ### **STRICT INSTRUCTIONS:**\
         - DO NOT include extra commentary, explanations, or response text.\
@@ -90,8 +90,8 @@ opposite_emojis = {
 conflecting_mood = {
     "Affection": ["Frustrated"],
     "Frustrated": ["Affection"],
-    "Anxious": ["Curious"],
-    "Inspired": ["Anxious"],
+    "Concerned": ["Curious"],
+    "Inspired": ["Concerned"],
 }
 
 reinforcing_mood = {

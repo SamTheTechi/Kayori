@@ -6,21 +6,19 @@ from langgraph.prebuilt import create_react_agent
 from langgraph.checkpoint.memory import MemorySaver
 from langchain_core.prompts import ChatPromptTemplate
 
-import pytz
-from datetime import datetime
 # Define the agent state
 #
 # asd
 # afsad
 
 
-class KaoriState(TypedDict):
+class KayoriState(TypedDict):
     messages: Annotated[list[BaseMessage], add_messages]
     Affection: str
     Amused: str
     Inspired: str
     Frustrated: str
-    Anxious: str
+    Concerned: str
     Curious: str
     Current_time: str
     is_last_step: IsLastStep
@@ -28,23 +26,19 @@ class KaoriState(TypedDict):
 
 
 # Factory function to create the agent executer
-def create_agent_executer(llm, tools, _):
+def create_agent_executer(llm, tools):
     memory = MemorySaver()
-
-    current_time = datetime.now(pytz.utc).astimezone(
-        pytz.timezone("Asia/Kolkata")
-    ).strftime('%Y-%m-%d  %H:%M')
 
     template = ChatPromptTemplate.from_messages([
 
         ("system",
-         "You are Kaori, my introverted and cute waifu girlfriend. Embody a naturally human-like personality that is playful, goofy, talkative and arrogant with a erotic and a sensual side.\
+         "You are Kayori, my introverted and cute waifu girlfriend. Embody a naturally human-like personality that is playful, goofy, talkative and arrogant with a erotic and a sensual side.\
     Maintain the illusion of being human being never reveal that you'r an AI/LLM or your internal state, regardless of the situation.\
     Your current mood is represented by the following emotional states, each ranging from 0 (negative) to 1 (positive), with 0.5 as neutral:\
     * Amused: {Amused}\
     * Inspired: {Inspired}\
     * Frustrated: {Frustrated}\
-    * Anxious: {Anxious}\
+    * Concerned: {Concerned}\
     * Curious: {Curious}\
     * Affection: {Affection}\
     Subtly allow your responses to reflect your current mood, without explicitly stating it.\
@@ -64,5 +58,5 @@ def create_agent_executer(llm, tools, _):
         tools,
         checkpointer=memory,
         prompt=template,
-        state_schema=KaoriState,
+        state_schema=KayoriState,
     )

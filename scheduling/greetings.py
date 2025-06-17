@@ -22,8 +22,9 @@ async def good_morning(
         response_text = ""
         val = [
             SystemMessage(
-                "Start the day with a warm and cheerful 'Good morning!' Wish the user a great day ahead in a friendly and uplifting way. "
-                "Keep it short, positive, and under 50 words."
+                "Start the day with a warm and cheerful 'Good morning!' Wish \
+                the user a great day ahead in a friendly and uplifting way. \
+                Keep it short, positive, and under 50 words."
             ),
             HumanMessage("good morning!")
         ]
@@ -51,7 +52,7 @@ async def good_morning(
         await client.change_presence(status=discord.Status.online)
 
     except Exception as e:
-        print(f"greetings: error in morning {e}")
+        print(f"error while evening greeting {e}")
 
 
 async def good_evening(
@@ -64,8 +65,10 @@ async def good_evening(
         response_text = ""
         val = [
             SystemMessage(
-                "Greet the user with a heartfelt 'Good evening!' and then ask them how their day went in a warm and caring way. "
-                "Ensure your response feels personal, friendly, and under 60 words. Avoid generic or robotic phrasing."
+                "Greet the user with a heartfelt 'Good evening!' and then ask\
+                them how their day went in a warm and caring way. Ensure \
+                your response feels personal, friendly, and under 60 words.\
+                Avoid generic or robotic phrasing."
             ),
             HumanMessage("good evening!")
         ]
@@ -92,4 +95,4 @@ async def good_evening(
         await client.change_presence(status=discord.Status.idle)
 
     except Exception as e:
-        print(e)
+        print(f"error while morning greeting {e}")

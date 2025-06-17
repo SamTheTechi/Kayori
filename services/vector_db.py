@@ -4,8 +4,8 @@ from langchain_pinecone import PineconeVectorStore
 from langchain_google_genai import GoogleGenerativeAIEmbeddings
 
 
-def initalise_vector_db(name: str = "kayori", dimension: int = 768) -> PineconeVectorStore:
-    API_KEY = os.getenv("PINECONE")
+def initalise_vector_db(name: str = "kayori", dimension: int = 769, api_key: str = "PINECONE") -> PineconeVectorStore:
+    API_KEY = os.getenv(api_key)
     if not API_KEY:
         raise ValueError("Pinecode api_key not found")
 

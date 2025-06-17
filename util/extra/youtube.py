@@ -12,6 +12,9 @@ from dotenv import load_dotenv
 load_dotenv()
 
 API_KEY = os.getenv("YOU_TUBE")
+if not API_KEY:
+    raise ValueError("youtube api_key not found")
+
 CHANNEL_IDS = ["UCUyeluBRhGPCW4rPe_UvBZQ", "UCxzC4EngIsMrPmbm6Nxvb-A"]
 
 

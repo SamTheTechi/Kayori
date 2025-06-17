@@ -1,15 +1,8 @@
 import os
 import random
 import discord
-from langchain_core.messages import (
-    SystemMessage,
-    AIMessage,
-    HumanMessage
-)
 from dotenv import load_dotenv
-from util.balance_mood import balance_mood
 from util.store import (
-    update_context,
     natures,
     update_pfp
 )
@@ -17,8 +10,11 @@ from util.store import (
 load_dotenv()
 
 TOKEN = os.getenv("DISCORD_BOT_TOKEN")
-intents = discord.Intents.default()
+if not TOKEN:
+    raise ValueError("discord bot token not found")
 
+
+intents = discord.Intents.default()
 client = discord.Client(intents=intents)
 
 

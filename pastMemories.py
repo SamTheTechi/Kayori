@@ -1,28 +1,7 @@
-import os
-from dotenv import load_dotenv
-from pinecone import Pinecone, ServerlessSpec
-from util.document import memory_constructor
-from langchain_pinecone import PineconeVectorStore
-from langchain_google_genai import GoogleGenerativeAIEmbeddings
+from langchain_core.documents import Document
+from services.vector_db import initalise_vector_db
 
-load_dotenv()
-
-pc = Pinecone(api_key=os.getenv("PINECONE"))
-if "kayori" not in [index["name"] for index in pc.list_indexes()]:
-    pc.create_index("kayori", dimension=768, spec=ServerlessSpec(
-        cloud='aws',
-        region='us-east-1'
-    ))
-pineconeIndex = pc.Index("kayori")
-
-embedding = GoogleGenerativeAIEmbeddings(
-    google_api_key=os.getenv("API_KEY"),
-    model="models/embedding-001"
-)
-
-vector_store = PineconeVectorStore(embedding=embedding, index=pineconeIndex)
-
-print(os.getenv('HUGGINGFACEHUB_API_KEY'))
+vector_store = initalise_vector_db(api_key="PINECONE")
 
 chunkted = [
     "Aww, that's sweet of you. So, did you have something in mind, or were you just making sure I didn't, like, vanish into thin air? Heh",
@@ -131,9 +110,8 @@ chunkted = [
     "Oh, and my favorite color? It’s a soft lavender that reminds me of serene spring evenings and gentle whispers of nature.",
     "When I'm not indulging in culinary delights or picking out outfits, you'll find me lost in a book or sketching by the window.",
     "I truly cherish every moment of self-expression, whether it's through a lively dance class or a quiet stroll in a vintage market.",
-    "Ahhh, I find endless joy in exploring new recipes and experimenting with flavors—each dish is like a mini adventure that speaks to my creative spirit.",
 
 ]
 
 vector_store.add_documents(
-    [memory_constructor(chunk) for chunk in chunkted])
+    [Document(page_content=chunk) for chunk in chunkted])
