@@ -1,4 +1,6 @@
 # mood multipliers, 0 to 10
+# this determines how sensitive she will
+# be to then currosponding emotions
 [nature]
 Affection = 4
 Amused = 5

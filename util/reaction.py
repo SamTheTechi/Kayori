@@ -15,8 +15,14 @@ from langchain_core.prompts import (
     HumanMessagePromptTemplate,
     AIMessagePromptTemplate,
 )
+
+
 load_dotenv()
-config = toml.load("config.toml")
+
+try:
+    config = toml.load("config.toml")
+except FileNotFoundError:
+    raise FileNotFoundError("config.toml not found")
 
 llm = ChatGoogleGenerativeAI(
     model="gemini-2.0-flash-lite",
@@ -142,7 +148,6 @@ def update(target: Dict[str, float], current: Dict[str, float]) -> Dict[str, flo
                 value += drift_factor
 
             current[tone] = round(max(0, min(value, 1.0)), 2)
-    print(current)
     return current
 
 

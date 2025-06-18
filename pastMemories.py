@@ -110,7 +110,6 @@ chunkted = [
     "Oh, and my favorite color? It’s a soft lavender that reminds me of serene spring evenings and gentle whispers of nature.",
     "When I'm not indulging in culinary delights or picking out outfits, you'll find me lost in a book or sketching by the window.",
     "I truly cherish every moment of self-expression, whether it's through a lively dance class or a quiet stroll in a vintage market.",
-
 ]
 
 vector_store.add_documents(

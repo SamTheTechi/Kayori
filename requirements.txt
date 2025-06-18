@@ -13,6 +13,7 @@ firebase_admin
 uvicorn
 fastapi
 dotenv
+redis
 google-auth-oauthlib
 geopy
 pytz

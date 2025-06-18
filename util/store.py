@@ -26,8 +26,6 @@ current_pfp = {
     "img": "kaori1.webp"
 }
 
-# weather
-
 
 def update_location(
     latitude: float,
