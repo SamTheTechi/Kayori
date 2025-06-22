@@ -1,13 +1,7 @@
-import os
 import toml
 import random
+from core.llm_provider import llm_initializer
 from typing import Dict
-from dotenv import load_dotenv
-from langchain_google_genai import (
-    ChatGoogleGenerativeAI,
-    HarmBlockThreshold,
-    HarmCategory,
-)
 from pydantic import BaseModel, confloat
 from langchain_core.prompts import (
     ChatPromptTemplate,
@@ -17,24 +11,12 @@ from langchain_core.prompts import (
 )
 
 
-load_dotenv()
-
 try:
     config = toml.load("config.toml")
 except FileNotFoundError:
     raise FileNotFoundError("config.toml not found")
 
-llm = ChatGoogleGenerativeAI(
-    model="gemini-2.0-flash-lite",
-    google_api_key=os.getenv("API_KEY"),
-    temperature=0.6,
-    safety_settings={
-        HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT: HarmBlockThreshold.BLOCK_NONE,
-        HarmCategory.HARM_CATEGORY_HARASSMENT: HarmBlockThreshold.BLOCK_NONE,
-        HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT: HarmBlockThreshold.BLOCK_NONE,
-        HarmCategory.HARM_CATEGORY_HATE_SPEECH: HarmBlockThreshold.BLOCK_NONE,
-    },
-)
+llm = llm_initializer()
 
 
 template = ChatPromptTemplate.from_messages([
@@ -45,22 +27,22 @@ template = ChatPromptTemplate.from_messages([
         ### **Response Format:**\
         - Strictly return all categories ('Affection', 'Amused', 'Inspired', \
         'Frustrated', 'Concerned', 'Curious') with their intensity as floats \
-        from -1.0 (strong negative) to 1.0 (strong positive).\
+        from -10 (strong negative) to 10 (strong positive).\
         - Format: `tone:strength`, separated by commas. Example: \
-        `Affection:0.8, Amused:-0.2, Inspired:0.5, Frustrated:0.0, Concerned:-0.5, Curious:0.3`.\
+        `Affection:8, Amused:-2, Inspired:5, Frustrated:0, Concerned:-5, Curious:3`.\
         - Never omit a category, even if its value is 0.\
         ### **Rules for Mood Changes:**\
         - Base mood shifts on sentiment, emotional triggers, and conversational flow.\
         - If no strong match exists, apply **slight negative adjustments** \
-        (-0.2 to -0.5) to reflect realistic mood shifts over time.\
+        (-1 to -3) to reflect realistic mood shifts over time.\
         - If the user's tone is **neutral or unremarkable**, apply minimal \
-        shifts (±0.1 to ±0.3) to avoid erratic jumps.\
+        shifts (±1 to ±3) to avoid erratic jumps.\
         - If the user asks an **intimate or affectionate question**, increase \
         'Affection' positively.\
         - If the user is **joking or playful**, increase 'Amused' but reduce \
         'Concerned' if relevant.\
         - If the user challenges Kaori or expresses **doubt**, increase \
-        'Frustrated' slightly (but never above 0.5 unless it's outright rude).\
+        'Frustrated' slightly.\
         - If the user asks deep, thought-provoking, or philosophical \
         questions, increase 'Curious' and possibly 'Inspired'.\
         - If the user expresses **fear or insecurity**, increase 'Concerned' \
@@ -109,12 +91,12 @@ reinforcing_mood = {
 
 
 class Validation(BaseModel):
-    Affection: confloat(ge=-1.0, le=1.0)
-    Amused: confloat(ge=-1.0, le=1.0)
-    Inspired: confloat(ge=-1.0, le=1.0)
-    Frustrated: confloat(ge=-1.0, le=1.0)
-    Concerned: confloat(ge=-1.0, le=1.0)
-    Curious: confloat(ge=-1.0, le=1.0)
+    Affection: confloat(ge=-10, le=10)
+    Amused: confloat(ge=-10, le=10)
+    Inspired: confloat(ge=-10, le=10)
+    Frustrated: confloat(ge=-10, le=10)
+    Concerned: confloat(ge=-10, le=10)
+    Curious: confloat(ge=-10, le=10)
 
 
 def parse(response: str, current: Dict[str, float]) -> Dict[str, float]:
@@ -133,18 +115,18 @@ def update(target: Dict[str, float], current: Dict[str, float]) -> Dict[str, flo
             # Adjust for mood conflicts
             for conflict in conflecting_mood.get(tone, []):
                 if conflict in current:
-                    value -= current[conflict] * 0.08
+                    value -= current[conflict] * 0.8
 
             # Adjust for mood reinforcement
             for reinforce in reinforcing_mood.get(tone, []):
                 if reinforce in current:
-                    value += current[reinforce] * 0.05
+                    value += current[reinforce] * 0.5
 
             # mood drift to neutral
-            drift_factor = abs(value - 0.5) * 0.1
-            if value > 0.5:
+            drift_factor = abs(value)
+            if value > 0:
                 value -= drift_factor
-            elif value < 0.5:
+            elif value < 0:
                 value += drift_factor
 
             current[tone] = round(max(0, min(value, 1.0)), 2)

@@ -1,15 +1,16 @@
+import os
 import discord
 import json
 import asyncio
-from services.redis_db import redis_client, QUEUE
+from services.redis_db import redis_client, MESSAGE_QUEUE, MESSAGE_SET
+from dotenv import load_dotenv
 
 # Internal core modules
 from core.scheduler import setup_scheduler
 from core.message_handler import message_handler
 
-# Configuration for DM and public server interactions
-user_config = {"configurable": {"thread_id": "dm"}}
-server_config = {"configurable": {"thread_id": "server"}}
+load_dotenv()
+USER_ID = int(os.getenv("USER_ID"))
 
 
 def setup_discord_bot(private_executer, public_executer, vector_store):
@@ -23,17 +24,16 @@ def setup_discord_bot(private_executer, public_executer, vector_store):
     async def on_ready():
         try:
             # Start any scheduled tasks
-            setup_scheduler(client, private_executer, user_config, vector_store)
+            setup_scheduler(client, private_executer, vector_store, USER_ID)
 
             # Start the async message processing handler (from Redis queue)
             asyncio.create_task(
                 message_handler(
                     client,
-                    user_config,
-                    server_config,
                     private_executer,
                     public_executer,
-                    vector_store
+                    vector_store,
+                    USER_ID
                 )
             )
 
@@ -58,7 +58,12 @@ def setup_discord_bot(private_executer, public_executer, vector_store):
             }
 
             # Push the message payload into Redis queue for async handling
-            await redis_client.lpush(QUEUE, json.dumps(payload))
+            await redis_client.lpush(MESSAGE_QUEUE, json.dumps(payload))
+
+            # Push the author+channel to count the number of acitive user in server and reply accondely
+            if not (isinstance(message.channel, discord.DMChannel)):
+                await redis_client.sadd(MESSAGE_SET, f"{message.author.id}:{message.channel.id}")
+
         except Exception as e:
             print(f"redis not working here: {e}")
 

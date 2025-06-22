@@ -14,7 +14,7 @@ from langchain_core.documents import Document
 from util.chunker import split_text
 from util.document import location_constructor
 from util.store import location, natures, update_context
-from util.geoutli import get_location
+from util.geo_utli import get_location
 
 
 load_dotenv()

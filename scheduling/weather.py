@@ -6,7 +6,7 @@ from langchain_core.messages import (
     HumanMessage
 )
 from util.store import location, natures, update_context
-from util.geoutli import get_forcast_weather
+from util.geo_utli import get_forcast_weather
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.prompts import (
     ChatPromptTemplate,

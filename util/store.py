@@ -1,4 +1,3 @@
-from datetime import datetime, timezone
 from util.fixedQueue import FixedQueue
 
 queue = FixedQueue(max_size=3)
@@ -10,12 +9,12 @@ location = {
 }
 
 natures = {
-    "Affection": 0.5,
-    "Amused": 0.2,
-    "Inspired": 0.2,
-    "Frustrated": 0.8,
-    "Concerned": 0.5,
-    "Curious": 0.5,
+    "Affection": 0,
+    "Amused": 0,
+    "Inspired": 0,
+    "Frustrated": 0,
+    "Concerned": 0,
+    "Curious": 0,
 }
 
 last_response = {
@@ -47,12 +46,3 @@ def update_pfp(img: str):
 
 def get_context():
     return queue.peek()
-
-
-def update_last_time():
-    last_response["time"] = int(datetime.now(timezone.utc).timestamp())
-
-
-def get_last_time() -> int:
-    return int((
-        datetime.now(timezone.utc).timestamp() - last_response.get("time", 0)) / 60)

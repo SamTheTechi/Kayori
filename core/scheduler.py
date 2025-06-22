@@ -6,8 +6,9 @@ from scheduling.nature import change_pfp, mood_drift, mood_spike
 from scheduling.greetings import good_evening, good_morning
 
 
-def setup_scheduler(client, private_executer, config, vector_store):
+def setup_scheduler(client, private_executer,  vector_store, USER_ID):
     scheduler = AsyncIOScheduler()
+    config = {"configurable": {"thread_id": str(USER_ID)}}
 
     # Periodic jobs
     scheduler.add_job(change_pfp, "interval", hours=random.randint(17, 20), args=[client])

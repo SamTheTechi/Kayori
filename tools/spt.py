@@ -1,6 +1,8 @@
-import random
 import os
+import random
+import requests
 import spotipy
+from typing import Optional
 from dotenv import load_dotenv
 from spotipy.oauth2 import SpotifyOAuth
 from langchain_core.tools import BaseTool
@@ -13,11 +15,13 @@ class SpotifyTool(BaseTool):
     name: str = "spotify_controller"
     description: str = (
         "A tool for controlling the user's Spotify playback. "
-        "Supports commands to play/pause music, skip tracks, go to the previous track, "
+        "Supports commands to play/pause music (start music), skip tracks, go to the previous track, "
         "get currently playing track information, adjust volume, toggle shuffle, and "
         "queue a random track from recent plays or the queue."
     )
     _sp: spotipy.Spotify = PrivateAttr()
+    JOIN_DEVICE_ID: Optional[str] = os.getenv("JOIN_DEVICE_ID")
+    JOIN_API_KEY: Optional[str] = os.getenv("JOIN_API_KEY")
 
     def __init__(self, **data):
         super().__init__(**data)
@@ -32,13 +36,36 @@ class SpotifyTool(BaseTool):
 
     def _play_pause(self):
         try:
-            current_status = self._sp.current_playback()
-            if current_status["is_playing"]:
-                self._sp.pause_playback()
-                return "Playback paused"
+            # If there's at least one active device, get current playback state
+            devices = self._sp.devices()
+            active_devices = devices.get("devices", [])
+            print(active_devices)
+            if len(active_devices) < 1:
+                # Only send Join push if API key and device ID are present
+                if self.JOIN_API_KEY and self.JOIN_DEVICE_ID:
+                    url = (
+                        "https://joinjoaomgcd.appspot.com/_ah/api/messaging/v1/sendPush"
+                        f"?apikey={self.JOIN_API_KEY}"
+                        f"&deviceId={self.JOIN_DEVICE_ID}"
+                        "&text=spotify_command"
+                    )
+                    response = requests.get(url)
+                    if response.status_code == 200:
+                        return "Spotify opend and start playing on androind phone"
+                    else:
+                        return f"Failed to trigger Join push. Status: {response.status_code}"
             else:
-                self._sp.start_playback()
-                return "Playback resumed."
+                current_status = self._sp.current_playback()
+                print(current_status)
+
+                if current_status and current_status.get("is_playing"):
+                    self._sp.pause_playback()
+                    return "Playback paused"
+                else:
+                    self._sp.start_playback()
+                    return "Playback resumed."
+
+            return "No active devices present"
         except Exception as e:
             return f"Error making playback request: {e}"
 
@@ -83,17 +110,6 @@ class SpotifyTool(BaseTool):
         except Exception as e:
             return f"Error chainging volume: {e}"
 
-    def _toggle_shuffle(self) -> str:
-        try:
-            playback = self._sp.current_playback()
-            if not playback or "shuffle_state" not in playback:
-                return "Unable to retrieve shuffle state. Make sure playback is active."
-            new = not playback["shuffle_state"]
-            self._sp.shuffle(new)
-            return "Shuffle turned on." if new else "Shuffle turned off."
-        except Exception as e:
-            return f"Error toggling shuffle: {e}"
-
     def _play_random(self) -> str:
         try:
             queue = self._sp.queue().get("queue", [])
@@ -118,8 +134,7 @@ class SpotifyTool(BaseTool):
             self,
             command: Literal["play&pause", "next", "skip"
                              "previous", "track_info",
-                             "volume", "toggle_suffle",
-                             "play_random"
+                             "volume", "play_random"
                              ],
             volume: Optional[int] = None
     ) -> str:
@@ -132,8 +147,6 @@ class SpotifyTool(BaseTool):
             return self._previous_track()
         elif command in ["track_info"]:
             return self._track_info()
-        elif command in ["toggle_suffle"]:
-            return self._toggle_shuffle()
         elif command in ["play_random"]:
             return self._play_random()
         elif command in ["volume"]:
@@ -142,5 +155,5 @@ class SpotifyTool(BaseTool):
             return self._set_volume(int(volume))
         else:
             return f"Command '{command}' not recognized. Available commands:\
-            play_pause, next/skip , previous, track_info, toggle_suffle , play_random\
+            play_pause, next/skip , previous, track_info, play_random\
             , volume."
