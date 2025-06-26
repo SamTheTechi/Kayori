@@ -6,6 +6,8 @@ from dotenv import load_dotenv
 from langgraph.prebuilt import create_react_agent
 from langchain_community.tools.tavily_search import TavilySearchResults
 
+# from util.send_voice_notes import send_voice_note
+
 # from server import run_server
 from services.vector_db import initalise_vector_db
 from core.discord_bot import setup_discord_bot
@@ -54,6 +56,7 @@ private_executer = create_react_agent(
 public_executer = create_react_agent(
     llm,
     public_tools,
+    checkpointer=memory,
     prompt=public_template,
     state_schema=KayoriState,
 )

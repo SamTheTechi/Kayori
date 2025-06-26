@@ -2,7 +2,6 @@ import os
 import random
 import requests
 import spotipy
-from typing import Optional
 from dotenv import load_dotenv
 from spotipy.oauth2 import SpotifyOAuth
 from langchain_core.tools import BaseTool

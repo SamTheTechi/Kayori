@@ -1,7 +1,8 @@
 import json
+from datetime import datetime, timedelta, timezone
 from services.redis_db import redis_client, MESSAGE_QUEUE, MESSAGE_SET
 from langchain_core.messages import HumanMessage, AIMessage, SystemMessage
-from util.reaction import analyseNature
+from util.mood import analyseMood
 from util.store import natures, update_context, get_context
 from util.get_current_time import get_current_time
 
@@ -55,9 +56,9 @@ async def message_handler(client, private_executer, public_executer, vector_stor
                 val = context + [HumanMessage(user_input)]
 
                 # Analyze user's tone and react
-                reaction = await analyseNature(user_input, get_context, natures)
-                if reaction.strip():
-                    await original_message.add_reaction(reaction)
+                reaction = await analyseMood(user_input, get_context, natures)
+                # if reaction.strip():
+                #     await original_message.add_reaction(reaction)
 
                 # Stream model response
                 async for chunk in private_executer.astream(
@@ -106,10 +107,14 @@ async def message_handler(client, private_executer, public_executer, vector_stor
             else:
                 active_user_count = await redis_client.scard(MESSAGE_SET)
                 await channel.typing()
+                print(channel_id)
 
                 # Retrieve others execluding user and kayori last chats messages in group chat
                 chat_history = []
                 skip_first = True
+
+                # This is to determine the time range in which we'll select the messages
+                cutoff_time = datetime.now(timezone.utc) - timedelta(minutes=30)
 
                 async for msg in channel.history(limit=15, oldest_first=False):
 
@@ -118,32 +123,45 @@ async def message_handler(client, private_executer, public_executer, vector_stor
                         skip_first = False
                         continue
 
+                    if msg.created_at < cutoff_time:
+                        continue
+
                     if msg.content and len(msg.content.strip()) > 3 and not msg.content.strip().startswith(("/", "!")):
                         if msg.author.id == USER_ID:
                             # Message from Kayori (your bot)
-                            chat_history.append(AIMessage(content=f'{msg.author.display_name}: {msg.content}'))
+                            chat_history.append(AIMessage(content=f'{msg.content}'))
                         else:
                             # Message from a user
-                            chat_history.append(HumanMessage(content=f'{msg.author.display_name}: {msg.content}'))
+                            chat_history.append(HumanMessage(
+                                content=msg.content.strip(),
+                                name=msg.author.display_name.lower().replace(" ", "_"),
+                                additional_kwargs={"role": f"{msg.author.display_name}", "source": "past conversation"})
+                            )
 
                 # Retrieve relevant past context from her memory (vector_store)
                 docs = vector_store.similarity_search(query=user_input, k=2)
                 chat_history.reverse()
 
                 context = [
-                    SystemMessage(content="Relevant memories with sam retrieved from earlier interactions:"),
+                    SystemMessage(content="Relevant memories with sam retrieved from earlier interactions"),
                     *[AIMessage(content=f"{doc.page_content}") for doc in docs],
 
-                    SystemMessage(content="Here is the current group conversation:"),
+                    SystemMessage(content="Here is the current group conversation"),
                     *chat_history,
 
-                    HumanMessage(content=f"{author.display_name}: {user_input}")
+                    HumanMessage(
+                        content=user_input,
+                        additional_kwargs={
+                            "role": msg.author.display_name,
+                            "source": "live_input"
+                        }
+                    )
                 ]
 
                 # React to message based on tone
-                reaction = await analyseNature(user_input, get_context, natures)
-                if reaction.strip():
-                    await original_message.add_reaction(reaction)
+                reaction = await analyseMood(user_input, get_context, natures)
+                # if reaction.strip():
+                #     await original_message.add_reaction(reaction)
 
                 # Stream response from public LLM agent
                 async for chunk in public_executer.astream(

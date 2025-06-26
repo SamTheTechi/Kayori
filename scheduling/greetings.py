@@ -5,6 +5,7 @@ from langchain_core.messages import (
     AIMessage,
     HumanMessage
 )
+from util.send_voice_notes import send_voice_note
 from util.balance_mood import balance_mood
 from util.store import (
     update_context,
@@ -47,8 +48,10 @@ async def good_morning(
                 response_text += chunk.content
 
         print("morning wished")
+        send_voice_note(response_text)
         await user.send(response_text)
         update_context(response_text)
+
         await client.change_presence(status=discord.Status.online)
 
     except Exception as e:
@@ -91,6 +94,9 @@ async def good_evening(
 
         print("evening wished")
         await user.send(response_text)
+
+        send_voice_note(response_text)
+
         update_context(response_text)
         await client.change_presence(status=discord.Status.idle)
 

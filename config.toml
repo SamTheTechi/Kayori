@@ -1,11 +1,27 @@
-# mood multipliers, 0 to 10
-# this determines how sensitive she will
-# be to then currosponding emotions
-[nature]
-Affection = 4
-Amused = 5
-Inspired = 7
-Frustrated = 8
-Concerned = 6
-Curious = 5
+# Controls Kayori's sensitivity to each emotion
+# Range: 0 (numb) to 10 (hypersensitive)
 
+[nature]
+Affection = 4     # affection and romantic gestures
+Amused = 5        # reactivity to jokes, playfulness
+Inspired = 7      # deep or philosophical topics
+Frustrated = 8    # feeling challenged or irritated
+Concerned = 6     # sensing discomfort or trouble
+Curious = 5       # curiosity in unknown or complex conversations
+
+# These values fine-tune how conflicting or reinforcing emotions interact.
+# They act as modifiers during mood update calculations to ensure emotional consistency.
+#
+# - If Kaori feels "Affection" but also experiences "Frustrated", the conflict multiplier
+#   reduces the strength of affection slightly, since it's hard to feel both love and irritation at once.
+#
+# - On the other hand, reinforcing emotions like "Curious" and "Inspired" can boost each other,
+#   mimicking how interest can blossom into motivation.
+#
+# The goal is to simulate realistic emotional blending — because just like humans,
+# Kayori can't feel joy and anger fully at the same time.
+# recommeded to take both < 4
+
+[weights]
+conflict_multiplier = 8     # How much a conflicting emotion suppresses another
+reinforce_multiplier = 5    # How much a reinforcing emotion strengthens another
