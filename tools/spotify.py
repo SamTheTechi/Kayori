@@ -33,12 +33,12 @@ class SpotifyTool(BaseTool):
             user-library-read playlist-read-private"
         ))
 
+    # Toggles playback (play/pause) on Spotify.
     def _play_pause(self):
         try:
             # If there's at least one active device, get current playback state
             devices = self._sp.devices()
             active_devices = devices.get("devices", [])
-            print(active_devices)
             if len(active_devices) < 1:
                 # Only send Join push if API key and device ID are present
                 if self.JOIN_API_KEY and self.JOIN_DEVICE_ID:
@@ -55,7 +55,6 @@ class SpotifyTool(BaseTool):
                         return f"Failed to trigger Join push. Status: {response.status_code}"
             else:
                 current_status = self._sp.current_playback()
-                print(current_status)
 
                 if current_status and current_status.get("is_playing"):
                     self._sp.pause_playback()
@@ -68,17 +67,18 @@ class SpotifyTool(BaseTool):
         except Exception as e:
             return f"Error making playback request: {e}"
 
+    # Skips to the next track in the Spotify queue.
     def _next_track(self):
         try:
             response = self._sp.queue()
             self._sp.next_track()
             next_song = response["queue"][0]["name"] if response.get(
                 "currently_playing") is not None else None
-            print(next_song)
             return f"Skipped to the next track {next_song}."
         except Exception as e:
             return f"Error skipping track: {e}"
 
+    # Goes back to the previous track on Spotify.
     def _previous_track(self):
         try:
             self._sp.previous_track()
@@ -86,6 +86,7 @@ class SpotifyTool(BaseTool):
         except Exception as e:
             return f"Error going to previous track: {e}"
 
+    # Retrieves information about the currently playing track.
     def _track_info(self) -> str:
         try:
             response = self._sp.queue()
@@ -97,6 +98,7 @@ class SpotifyTool(BaseTool):
         except Exception as e:
             return f"Error: {e}"
 
+    # Sets the playback volume on Spotify.
     def _set_volume(self, volume: int) -> str:
         try:
             playback = self._sp.current_playback()
@@ -109,33 +111,26 @@ class SpotifyTool(BaseTool):
         except Exception as e:
             return f"Error chainging volume: {e}"
 
+    # Plays a random track from recently played or queue.
     def _play_random(self) -> str:
         try:
-            queue = self._sp.queue().get("queue", [])
-            if not queue or len(queue) < 5:
-                last_played = self._sp.current_user_recently_played(limit=10)
-                track = random.choice(last_played)
-                uri = track["uri"]
-            else:
-                queue_subset = queue[5:min(len(queue), 10)]
-                track = random.choice(queue_subset)
-                uri = track["uri"]
+            tracks = self._sp.current_user_top_tracks(limit=20, time_range="short_term")
+
+            track = random.choice(tracks)
+            uri = track["uri"]
 
             self._sp.add_to_queue(uri=uri)
             self._sp.next_track()
 
-            return f"Surprise! Playing: {track['name']} by {', '.join(artist['name'] for artist in track['artists'])} 🎵"
-
+            return f"Playing: {track['name']} by {', '.join(artist['name'] for artist in track['artists'])} 🎵"
         except Exception as e:
-            return f"Error playing a surprise song: {e}"
+            return f"Error playing a song: {e}"
 
+    # Executes a Spotify command.
     def _run(
-            self,
-            command: Literal["play&pause", "next", "skip"
-                             "previous", "track_info",
-                             "volume", "play_random"
-                             ],
-            volume: Optional[int] = None
+        self,
+        command: Literal["play&pause", "next", "skip" "previous", "track_info", "volume", "play_random"],
+        volume: Optional[int] = None
     ) -> str:
         command = command.lower().strip()
         if command in ["play&pause"]:

@@ -1,3 +1,5 @@
+
+# Filters a list of tools, returning only those with valid API keys.
 def filter_valid_tools(tools: list):
     valid_tools = []
     for tool in tools:

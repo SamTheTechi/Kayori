@@ -5,19 +5,13 @@ from langchain_core.messages import (
     AIMessage,
     HumanMessage
 )
-from util.send_voice_notes import send_voice_note
+from util.get_current_time import get_current_time
 from util.balance_mood import balance_mood
-from util.store import (
-    update_context,
-    natures,
-)
+from services.state_store import get_mood
 
 
-async def good_morning(
-        client,
-        agent_executer,
-        config,
-):
+# Sends a good morning message to the user.
+async def good_morning(client, agent_executer, config):
     try:
         user = await client.fetch_user(int(os.getenv("USER_ID")))
         response_text = ""
@@ -29,17 +23,19 @@ async def good_morning(
             ),
             HumanMessage("good morning!")
         ]
+        mood = await get_mood()
 
-        balance_mood(natures)
+        await balance_mood()
 
         async for chunk, metadata in agent_executer.astream(
             {"messages": val,
-             "Affection": str(natures["Affection"]),
-             "Amused": str(natures["Amused"]),
-             "Inspired": str(natures["Inspired"]),
-             "Frustrated": str(natures["Frustrated"]),
-             "Concerned": str(natures["Concerned"]),
-             "Curious": str(natures["Curious"]),
+             "Affection": str(mood["Affection"]),
+             "Amused": str(mood["Amused"]),
+             "Inspired": str(mood["Inspired"]),
+             "Frustrated": str(mood["Frustrated"]),
+             "Concerned": str(mood["Concerned"]),
+             "Curious": str(mood["Curious"]),
+             "current_time": str(get_current_time())
              },
             config,
             stream_mode="messages",
@@ -48,9 +44,7 @@ async def good_morning(
                 response_text += chunk.content
 
         print("morning wished")
-        send_voice_note(response_text)
         await user.send(response_text)
-        update_context(response_text)
 
         await client.change_presence(status=discord.Status.online)
 
@@ -58,11 +52,8 @@ async def good_morning(
         print(f"error while evening greeting {e}")
 
 
-async def good_evening(
-        client,
-        agent_executer,
-        config,
-):
+# Sends a good evening message to the user.
+async def good_evening(client, agent_executer, config):
     try:
         user = await client.fetch_user(int(os.getenv("USER_ID")))
         response_text = ""
@@ -75,16 +66,18 @@ async def good_evening(
             ),
             HumanMessage("good evening!")
         ]
-        balance_mood(natures)
+        mood = await get_mood()
+
+        await balance_mood()
 
         async for chunk, metadata in agent_executer.astream(
             {"messages": val,
-             "Affection": str(natures["Affection"]),
-             "Amused": str(natures["Amused"]),
-             "Inspired": str(natures["Inspired"]),
-             "Frustrated": str(natures["Frustrated"]),
-             "Concerned": str(natures["Concerned"]),
-             "Curious": str(natures["Curious"]),
+             "Affection": str(mood["Affection"]),
+             "Amused": str(mood["Amused"]),
+             "Inspired": str(mood["Inspired"]),
+             "Frustrated": str(mood["Frustrated"]),
+             "Concerned": str(mood["Concerned"]),
+             "Curious": str(mood["Curious"]),
              },
             config,
             stream_mode="messages",
@@ -93,11 +86,9 @@ async def good_evening(
                 response_text += chunk.content
 
         print("evening wished")
+
         await user.send(response_text)
 
-        send_voice_note(response_text)
-
-        update_context(response_text)
         await client.change_presence(status=discord.Status.idle)
 
     except Exception as e:

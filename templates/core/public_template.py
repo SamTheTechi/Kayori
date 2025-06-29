@@ -1,5 +1,6 @@
 from langchain_core.prompts import ChatPromptTemplate
 
+# Defines the chat prompt template for public conversations with Kayori.
 public_template = ChatPromptTemplate.from_messages([
 
     ("system",

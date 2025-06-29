@@ -6,7 +6,7 @@ from typing import Any, Dict, List, Optional, Type
 from pydantic import BaseModel, Field
 
 
-class SearchEventsSchema(BaseModel):
+class SearchEventsSchema(BaseModel): # Schema for searching calendar events.
     min_datetime: str = Field(
         ..., description="The start date and time for the event search in 'YYYY-MM-DD\
         HH:MM:SS' format. Defaults to the current_date_time if not specified."
@@ -30,13 +30,13 @@ class SearchEventsSchema(BaseModel):
     )
 
 
-class CalendarSearchEvent(CalendarBaseTool):
+class CalendarSearchEvent(CalendarBaseTool): # Tool for searching calendar events.
     name: str = "search_events"
     description: str = "Use this tool to search events in the calendar,\
     use this calender as primary 'gsameer478@gmail.com' unless it's spicified "
     args_schema: Type[SearchEventsSchema] = SearchEventsSchema
 
-    def _get_calendars_info(self) -> List[Dict[str, Any]]:
+    def _get_calendars_info(self) -> List[Dict[str, Any]]: # Retrieves information about available calendars.
         try:
             calendar_list = self.api_resource.calendarList().list().execute()
             calendars = calendar_list.get("items", [])
@@ -50,20 +50,16 @@ class CalendarSearchEvent(CalendarBaseTool):
             raise Exception(f"Failed to fetch calendar info: {
                             error}") from error
 
-    def _get_calendar_timezone(
-        self, calendars_info: List[Dict[str, str]], calendar_id: str
-    ) -> Optional[str]:
+    def _get_calendar_timezone(self, calendars_info: List[Dict[str, str]], calendar_id: str) -> Optional[str]: # Retrieves the timezone for a given calendar ID.
         for cal in calendars_info:
             if cal["id"] == calendar_id:
                 return cal.get("timeZone")
         return None
 
-    def _get_calendar_ids(self, calendars_info: List[Dict[str, str]]) -> List[str]:
+    def _get_calendar_ids(self, calendars_info: List[Dict[str, str]]) -> List[str]: # Retrieves a list of calendar IDs.
         return [cal["id"] for cal in calendars_info]
 
-    def _process_data_events(
-        self, events_data: List[Dict[str, Any]]
-    ) -> List[Dict[str, Optional[str]]]:
+    def _process_data_events(self, events_data: List[Dict[str, Any]]) -> List[Dict[str, Optional[str]]]: # Processes raw event data into a simplified format.
         simplified_data = []
         for data in events_data:
             event_dict = {
@@ -80,14 +76,7 @@ class CalendarSearchEvent(CalendarBaseTool):
             simplified_data.append(event_dict)
         return simplified_data
 
-    def _run(
-        self,
-        min_datetime: str,
-        max_datetime: str,
-        order_by: str = "startTime",
-        query: Optional[str] = None,
-        run_manager: Optional[CallbackManagerForToolRun] = None,
-    ) -> List[Dict[str, Optional[str]]]:
+    def _run(self, min_datetime: str, max_datetime: str, order_by: str = "startTime", query: Optional[str] = None, run_manager: Optional[CallbackManagerForToolRun] = None) -> List[Dict[str, Optional[str]]]: # Executes the event search based on provided criteria.
         try:
             calendars_data = self._get_calendars_info()
             calendars = self._get_calendar_ids(calendars_data)

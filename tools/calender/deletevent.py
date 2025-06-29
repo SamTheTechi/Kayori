@@ -4,7 +4,7 @@ from pydantic import BaseModel, Field
 from langchain_google_community.calendar.base import CalendarBaseTool
 
 
-class DeleteEventSchema(BaseModel):
+class DeleteEventSchema(BaseModel): # Schema for deleting a calendar event.
 
     event_id: str = Field(..., description="The event ID to delete.")
     calendar_id: Optional[str] = Field(
@@ -20,7 +20,7 @@ class DeleteEventSchema(BaseModel):
 
 
 # type: ignore[override, override]
-class CalendarDeleteEvent(CalendarBaseTool):
+class CalendarDeleteEvent(CalendarBaseTool): # Tool for deleting calendar events.
     """Tool that delete an event in Google Calendar."""
 
     name: str = "delete_calendar_event"
@@ -28,13 +28,7 @@ class CalendarDeleteEvent(CalendarBaseTool):
     Use CalendarSearchEvent tool to find event_id"
     args_schema: Type[DeleteEventSchema] = DeleteEventSchema
 
-    def _run(
-        self,
-        event_id: str,
-        calendar_id: Optional[str] = "primary",
-        send_updates: Optional[str] = None,
-        run_manager: Optional[CallbackManagerForToolRun] = None,
-    ) -> str:
+    def _run(self, event_id: str, calendar_id: Optional[str] = "primary", send_updates: Optional[str] = None, run_manager: Optional[CallbackManagerForToolRun] = None) -> str: # Deletes a calendar event.
         try:
             self.api_resource.events().delete(
                 eventId=event_id, calendarId=calendar_id, sendUpdates=send_updates

@@ -3,10 +3,11 @@ from datetime import datetime, timedelta, timezone
 from services.redis_db import redis_client, MESSAGE_QUEUE, MESSAGE_SET
 from langchain_core.messages import HumanMessage, AIMessage, SystemMessage
 from util.mood import analyseMood
-from util.store import natures, update_context, get_context
 from util.get_current_time import get_current_time
+from services.state_store import get_mood
 
 
+# Handles incoming messages from Discord.
 async def message_handler(client, private_executer, public_executer, vector_store, USER_ID):
     while True:
         try:
@@ -31,7 +32,6 @@ async def message_handler(client, private_executer, public_executer, vector_stor
             author = await client.fetch_user(author_id)
             original_message = await channel.fetch_message(message_id)
             target_user = await client.fetch_user(USER_ID)
-
             # Setup for response building
             user_input = content
             final_text = ""
@@ -56,11 +56,15 @@ async def message_handler(client, private_executer, public_executer, vector_stor
                 val = context + [HumanMessage(user_input)]
 
                 # Analyze user's tone and react
-                reaction = await analyseMood(user_input, get_context, natures)
-                # if reaction.strip():
-                #     await original_message.add_reaction(reaction)
+                reaction = await analyseMood(user_input)
+                if reaction.strip():
+                    await original_message.add_reaction(reaction)
+
+                # Current mood values
+                natures = await get_mood()
 
                 # Stream model response
+                print(author_id)
                 async for chunk in private_executer.astream(
                     {
                         "messages": val,
@@ -95,7 +99,6 @@ async def message_handler(client, private_executer, public_executer, vector_stor
                 if response_text.strip():
                     await author.send(response_text)
                     final_text += response_text
-                    update_context(response_text)
 
                 if final_text.strip() and not tool_called:
                     print("handled user")
@@ -107,7 +110,6 @@ async def message_handler(client, private_executer, public_executer, vector_stor
             else:
                 active_user_count = await redis_client.scard(MESSAGE_SET)
                 await channel.typing()
-                print(channel_id)
 
                 # Retrieve others execluding user and kayori last chats messages in group chat
                 chat_history = []
@@ -159,9 +161,12 @@ async def message_handler(client, private_executer, public_executer, vector_stor
                 ]
 
                 # React to message based on tone
-                reaction = await analyseMood(user_input, get_context, natures)
-                # if reaction.strip():
-                #     await original_message.add_reaction(reaction)
+                reaction = await analyseMood(user_input)
+                if reaction.strip():
+                    await original_message.add_reaction(reaction)
+
+                # Current mood values
+                natures = await get_mood()
 
                 # Stream response from public LLM agent
                 async for chunk in public_executer.astream(
@@ -188,7 +193,9 @@ async def message_handler(client, private_executer, public_executer, vector_stor
 
                                 # Send message early if tool is triggered
                                 if msg.tool_calls and not tool_called:
+                                    print("tool called")
                                     tool_called = True
+
                                     if response_text.strip():
                                         if active_user_count > 1:
                                             await original_message.reply(response_text, mention_author=True)
@@ -205,7 +212,6 @@ async def message_handler(client, private_executer, public_executer, vector_stor
                         await channel.send(response_text)
 
                     final_text += response_text
-                    update_context(response_text)
                     print("server user")
 
                 # removes item to set

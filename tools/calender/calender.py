@@ -7,7 +7,7 @@ from tools.calender.deletevent import CalendarDeleteEvent
 from tools.calender.createvent import CalendarCreateEvent
 from tools.calender.searchevent import CalendarSearchEvent
 from typing_extensions import TypedDict, Annotated
-from langchain_core.prompts import ChatPromptTemplate
+from templates.calender import calender_template
 from langchain_core.messages import BaseMessage, AIMessage
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.tools import BaseTool
@@ -22,20 +22,12 @@ llm = ChatGoogleGenerativeAI(
     temperature=0.1,
 )
 
-template = ChatPromptTemplate.from_messages([
-    ("system",
-        "You are an google calender manager you job is to\
-        handle my google calender. this is the current time\
-        {current_data_time} Respond concisely with only the necessary\
-        scheduling details. Do not add extra commentary or text."
-     ),
-    ("placeholder", "{messages}"),
-])
 
 tool = [CalendarSearchEvent(), CalendarCreateEvent(),
         CalendarDeleteEvent()]
 
 
+# Defines the state schema for the calendar agent.
 class CalenderState(TypedDict):
     messages: Annotated[list[BaseMessage], add_messages]
     current_data_time: str
@@ -46,18 +38,20 @@ class CalenderState(TypedDict):
 agent_executer = create_react_agent(
     llm,
     tool,
-    prompt=template,
+    prompt=calender_template,
     state_schema=CalenderState
 )
 
 config = {"configurable": {"thread_id": "abc123"}}
 
 
+# Schema for validating calendar agent queries.
 class CalenderAgentSchema(BaseModel):
     query: str = Field(...,
                        description="User request realted to google calender")
 
 
+# A specialized tool for managing calendar-related tasks.
 class CalenderAgentTool(BaseTool):
     name: str = "calender_agent_tool"
     description: str = "A specialized tool for managing calendar-related tasks\
@@ -66,6 +60,7 @@ class CalenderAgentTool(BaseTool):
     availability, as well as creating, deleting, and searching for events."
     args_schema: Type[CalenderAgentSchema] = CalenderAgentSchema
 
+    # Executes the calendar agent with the given query.
     def _run(self, query: str) -> str:
         response_text = ""
         for chunk, metadata in agent_executer.stream(
@@ -81,5 +76,6 @@ class CalenderAgentTool(BaseTool):
 
         return str(response_text)
 
+    # Allows the tool to be called directly with a query.
     def __call__(self, query: str) -> str:
         return self._run(query)

@@ -8,7 +8,7 @@ from langchain_google_community.calendar.base import CalendarBaseTool
 from langchain_google_community.calendar.utils import is_all_day_event
 
 
-class CreateEventSchema(BaseModel):
+class CreateEventSchema(BaseModel): # Input schema for creating a calendar event.
     """Input for CalendarCreateEvent."""
 
     summary: str = Field(..., description="The title of the event.")
@@ -71,7 +71,7 @@ class CreateEventSchema(BaseModel):
     )
 
 
-class CalendarCreateEvent(CalendarBaseTool):
+class CalendarCreateEvent(CalendarBaseTool): # Tool for creating new calendar events.
 
     name: str = "create_calendar_event"
     description: str = (
@@ -81,20 +81,7 @@ class CalendarCreateEvent(CalendarBaseTool):
     )
     args_schema: Type[CreateEventSchema] = CreateEventSchema
 
-    def _prepare_event(
-        self,
-        summary: str,
-        start_datetime: str,
-        end_datetime: str,
-        timezone: Optional[str] = "Asia/Kolkata",
-        recurrence: Optional[Dict[str, Any]] = None,
-        location: Optional[str] = None,
-        description: Optional[str] = None,
-        attendees: Optional[List[str]] = None,
-        conference_data: Optional[bool] = None,
-        color_id: Optional[str] = None,
-        transparency: Optional[str] = None,
-    ) -> Dict[str, Any]:
+    def _prepare_event(self, summary: str, start_datetime: str, end_datetime: str, timezone: Optional[str] = "Asia/Kolkata", recurrence: Optional[Dict[str, Any]] = None, location: Optional[str] = None, description: Optional[str] = None, attendees: Optional[List[str]] = None, conference_data: Optional[bool] = None, color_id: Optional[str] = None, transparency: Optional[str] = None) -> Dict[str, Any]: # Prepares the event body for the Google Calendar API.
         try:
             if is_all_day_event(start_datetime, end_datetime):
                 start = {"date": start_datetime}
@@ -153,22 +140,7 @@ class CalendarCreateEvent(CalendarBaseTool):
             event_body["transparency"] = transparency
         return event_body
 
-    def _run(
-        self,
-        summary: str,
-        start_datetime: str,
-        end_datetime: str,
-        timezone: Optional[str],
-        calendar_id: str = "primary",
-        recurrence: Optional[Dict[str, Any]] = None,
-        location: Optional[str] = None,
-        description: Optional[str] = None,
-        attendees: Optional[List[str]] = None,
-        conference_data: Optional[bool] = None,
-        color_id: Optional[str] = None,
-        transparency: Optional[str] = None,
-        run_manager: Optional[CallbackManagerForToolRun] = None,
-    ) -> str:
+    def _run(self, summary: str, start_datetime: str, end_datetime: str, timezone: Optional[str], calendar_id: str = "primary", recurrence: Optional[Dict[str, Any]] = None, location: Optional[str] = None, description: Optional[str] = None, attendees: Optional[List[str]] = None, conference_data: Optional[bool] = None, color_id: Optional[str] = None, transparency: Optional[str] = None, run_manager: Optional[CallbackManagerForToolRun] = None) -> str: # Creates a new calendar event.
         try:
             body = self._prepare_event(
                 summary=summary,

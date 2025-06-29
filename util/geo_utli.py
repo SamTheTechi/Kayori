@@ -3,6 +3,7 @@ import requests
 from dotenv import load_dotenv
 from geopy.geocoders import Nominatim
 load_dotenv()
+
 geolocator = Nominatim(user_agent="kaori")
 
 WEAHTER_API_KEY = os.getenv("WEATHER_API")
@@ -10,7 +11,8 @@ if not WEAHTER_API_KEY:
     raise ValueError("weather api_key not found")
 
 
-def get_location(lat, lon):
+# Retrieves the current location based on latitude and longitude.
+def get_current_location(lat, lon):
     loca = geolocator.reverse(f"{str(lat)},{str(lon)}")
     address = loca.raw.get('address', {})
 
@@ -21,6 +23,7 @@ def get_location(lat, lon):
     return {"suburb": suburb, "city": city, "state": state}
 
 
+# Retrieves the current weather conditions for a given location.
 def get_current_weather(lat, lon):
     url = f"http://api.weatherapi.com/v1/current.json?key={
         WEAHTER_API_KEY}&q={str(lat)},{str(lon)}&aqi=no"
@@ -41,6 +44,7 @@ def get_current_weather(lat, lon):
         return {"error": "Failed to fetch weather data"}
 
 
+# Retrieves the weather forecast for a given location.
 def get_forcast_weather(lat, lon):
     url = f"http://api.weatherapi.com/v1/forecast.json?key={
         WEAHTER_API_KEY}&q={str(lat)},{str(lon)}&days=1&aqi=no&alerts=no"

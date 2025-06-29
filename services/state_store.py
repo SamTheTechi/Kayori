@@ -1,64 +1,40 @@
-from util.fixedQueue import FixedQueue
 from services.redis_db import (
     redis_client,
-    LOCATION,
+    LIVE_LOCATION,
+    PINNED_LOCATION,
     LAST_REPONSE,
     NATURE,
-    CURRENT_PFP,
-    PREVIOUS_QUEUE
 )
 
 
-queue = FixedQueue(max_size=3)
-
-location = {
-    "latitude": 0,
-    "longitude": 0,
-    "timestamp": 0,
-}
-
-natures = {
-    "Affection": 0,
-    "Amused": 0,
-    "Inspired": 0,
-    "Frustrated": 0,
-    "Concerned": 0,
-    "Curious": 0,
-}
-
-last_response = {
-    "time": 0,
-}
-
-current_pfp = {
-    "img": "kaori1.webp"
-}
-
-
-async def set_location(
-    latitude: float,
-    longitude: float,
-    timestamp: float
-):
-    await redis_client.hset(LOCATION, mapping={
+# user's current location
+async def set_live_location(latitude: float, longitude: float, timestamp: float):
+    await redis_client.hset(LIVE_LOCATION, mapping={
         "latitude": latitude,
         "longitude": longitude,
         "timestamp":  timestamp
     })
 
 
-async def get_location():
-    return await redis_client.hgetall(LOCATION)
+async def set_pinned_location():
+    location = await redis_client.hgetall(LIVE_LOCATION)
+    await redis_client.hset(PINNED_LOCATION, mapping={
+        "latitude": location["latitude"],
+        "longitude": location["longitude"],
+        "timestamp":  location["timestamp"]
+    })
 
 
-async def set_nature(
-    Affection: float,
-    Amused: float,
-    Inspired: float,
-    Frustrated: float,
-    Concerned: float,
-    Curious: float,
-):
+async def get_pinned_location():
+    return await redis_client.hgetall(PINNED_LOCATION)
+
+
+async def get_live_location():
+    return await redis_client.hgetall(LIVE_LOCATION)
+
+
+# kayori's mood level
+async def set_mood(Affection: float, Amused: float, Inspired: float, Frustrated: float, Concerned: float, Curious: float):
     await redis_client.hset(NATURE, mapping={
         "Affection": Affection,
         "Amused": Amused,
@@ -69,17 +45,70 @@ async def set_nature(
     })
 
 
-async def get_nature():
+async def get_mood():
     return await redis_client.hgetall(NATURE)
 
 
-def update_context(context: str):
-    queue.enqueue(context)
+# last time when user replied
+async def set_last_response(time: float):
+    await redis_client.hset(LAST_REPONSE, time)
 
 
-def update_pfp(img: str):
-    current_pfp["img"] = img
+async def get_last_response():
+    return await redis_client.hgetall(LAST_REPONSE)
 
 
-def get_context():
-    return queue.peek()
+# init for all the values
+async def init_location():
+    pinned_exists = await redis_client.exists(PINNED_LOCATION)
+    live_exists = await redis_client.exists(LIVE_LOCATION)
+
+    if not pinned_exists:
+        await redis_client.hset(PINNED_LOCATION, mapping={
+            "latitude": 25.3436149,
+            "longitude": 81.9102728,
+            "timestamp": 0
+        })
+
+    if not live_exists:
+        await redis_client.hset(LIVE_LOCATION, mapping={
+            "latitude": 25.3436149,
+            "longitude": 81.9102728,
+            "timestamp": 0
+        })
+
+
+async def init_mood():
+    exists = await redis_client.exists(NATURE)
+    if not exists:
+        await redis_client.hset(NATURE, mapping={
+            "Affection": 0.0,
+            "Amused": 0.0,
+            "Inspired": 0.0,
+            "Frustrated": 0.0,
+            "Concerned": 0.0,
+            "Curious": 0.0,
+        })
+
+
+async def init_last_response():
+    exists = await redis_client.exists(LAST_REPONSE)
+    if not exists:
+        await redis_client.hset(LAST_REPONSE, mapping={
+            "time": 0.0
+        })
+
+
+async def init_states():
+    await init_location()
+    await init_mood()
+    await init_last_response()
+
+
+# previous response context
+# def update_context(context: str):
+#     queue.enqueue(context)
+#
+#
+# def get_context():
+#     return queue.peek()

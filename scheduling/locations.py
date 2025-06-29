@@ -1,10 +1,10 @@
 import os
-import re
 import pytz
 from datetime import datetime
 from geopy.distance import geodesic
 from dotenv import load_dotenv
 from services.vector_db import initalise_vector_db
+from util.get_current_time import get_current_time
 from langchain_core.messages import (
     SystemMessage,
     AIMessage,
@@ -13,104 +13,147 @@ from langchain_core.messages import (
 from langchain_core.documents import Document
 from util.chunker import split_text
 from util.document import location_constructor
-from util.store import location, natures, update_context
-from util.geo_utli import get_location
+from services.state_store import get_mood, get_live_location, get_pinned_location, set_pinned_location
+from util.geo_utli import get_current_location
 
 
 load_dotenv()
 # location change
 USER_ID = int(os.getenv("USER_ID"))
-vector_store = initalise_vector_db(name="location", api_key="PINECONE2")
+vector_store = initalise_vector_db(name="location", api_key="PINECONE")
 
 
-def process_location(lat, lon, threshold=0.85, min_distance=5):
+async def can_trigger(radius: int) -> bool:
+    live = await get_live_location()
+    pinned = await get_pinned_location()
 
-    user_location = get_location(lat, lon)
+    if not live or not pinned:
+        return False
+
+    distance = geodesic(
+        (live["latitude"], live["longitude"]),
+        (pinned["latitude"], pinned["longitude"])
+    ).km
+
+    if distance > radius:
+        await set_pinned_location()
+        return True
+    else:
+        return False
+
+
+async def process_location(threshold=0.85, days=15):
+
+    live = await get_live_location()
+    lat = live["latitude"]
+    lon = live["longitude"]
+
+    user_location = get_current_location(lat, lon)
 
     suburb = user_location.get("suburb", "Unknown")
     city = user_location.get("city", "Unknown")
-    location_text = f"latitude: {lat}, longitude: {
-        lon}, suburb: {suburb}, city: {city}."
 
-    results = vector_store.similarity_search_with_relevance_scores(
-        query=location_text, k=1)
+    location_query = f"latitude: {lat}, longitude: {lon}, suburb: {suburb}, city: {city}."
+
+    results = vector_store.similarity_search_with_relevance_scores(query=location_query, k=1)
 
     if results:
         document, score = results[0]
 
-        lat_match = float(
-            re.search(r'latitude:\s*([\d.]+)', document.page_content).group(1))
-        lon_match = float(
-            re.search(r'longitude:\s*([\d.]+)', document.page_content).group(1))
+        # not a new location, been to this place before
+        if score >= threshold:
 
-        distance = geodesic((lat, lon), (lat_match, lon_match)).km
+            # check for the time ellipsis
+            current_time = datetime.now(pytz.utc).astimezone(pytz.timezone("Asia/Kolkata")).isoformat()
+            last_time = document.metadata["time"]
 
-        current_time = datetime.now(pytz.utc).astimezone(
-            pytz.timezone("Asia/Kolkata")).isoformat()
-        last_time = document.metadata["time"]
-        current_timestamp = datetime.fromisoformat(current_time)
-        last_timestamp = datetime.fromisoformat(last_time)
+            current_timestamp = datetime.fromisoformat(current_time)
+            last_timestamp = datetime.fromisoformat(last_time)
 
-        time_difference = abs(
-            (current_timestamp - last_timestamp).total_seconds()) / 86400
-        print(time_difference)
+            time_difference = abs(
+                (current_timestamp - last_timestamp).total_seconds()) / 86400
 
-        if (score >= threshold and distance <= min_distance) or (time_difference < 15 and score >= threshold):
-            return (False, "unknown", "unknown")
+            # seems like enough days has passed
+            if time_difference > days:
+                return (True, False, suburb, city)
 
-    vector_store.add_documents(
-        [location_constructor(lat, lon, suburb, city)])
+            # not enought time have passed to trigger the location_change msg
+            else:
+                return (False, False, "Unknown", "Unknown")
 
-    return (True, suburb, city)
+        # new location seems like new adventure
+        else:
+
+            vector_store.add_documents(
+                [location_constructor(lat, lon, suburb, city)])
+            return (True, True, suburb, city)
 
 
-async def location_change(
-        client,
-        agent_executer,
-        config,
-        vector_str
-):
+# Handles a detected change in the user's location.
+async def location_change(client, agent_executer, config, vector_str):
     try:
-        user = await client.fetch_user(USER_ID)
-        response, suburb, city = process_location(
-            location["latitude"], location["longitude"])
 
-        if not response:
-            return
+        # in kilo meters, checks if users goes beyond 5km redius or not
+        if await can_trigger(radius=5):
 
-        docs = vector_str.similarity_search(query=f"{suburb},{city}", k=2)
-        response_text = ""
+            user = await client.fetch_user(USER_ID)
 
-        val = [
-            SystemMessage(
-                f"Location change detected: The user is now in {suburb}, {city}. \
-                Tease them playfully if it's unexpected, or acknowledge it subtly if anticipated. \
-                Keep it casual and human-like—no robotic responses. Avoide greeting"
-            ),
-            *[AIMessage(content=f"{doc.page_content}") for doc in docs],
-            HumanMessage("** User location change detected **")
-        ]
+            response, new_or_old, suburb, city = await process_location()
 
-        async for chunk, metadata in agent_executer.astream(
-            {"messages": val,
-             "Affection": str(natures["Affection"]),
-             "Amused": str(natures["Amused"]),
-             "Inspired": str(natures["Inspired"]),
-             "Frustrated": str(natures["Frustrated"]),
-             "Concerned": str(natures["Concerned"]),
-             "Curious": str(natures["Curious"]),
-             },
-            config,
-            stream_mode="messages",
-        ):
-            if isinstance(chunk, AIMessage):
-                response_text += chunk.content
+            if not response:
+                return
 
-        await user.send(response_text)
-        chunkted = split_text(response_text)
-        vector_str.add_documents(
-            [Document(chunk) for chunk in chunkted])
-        update_context(response_text)
+            response_text = ""
+
+            if new_or_old:
+                # template for vistion for first time
+                val = [
+                    SystemMessage(
+                        f"Looks like the user is exploring a new place — {suburb}, {city}! "
+                        "Say something playful, exciting, or curious. Maybe tease them for being an adventurer. "
+                        "Keep the tone friendly and avoid generic greetings"
+
+                    ),
+                    HumanMessage("** User location change detected **")
+                ]
+
+            else:
+                docs = vector_str.similarity_search(query=f"{suburb},{city}", k=2)
+
+                # template for vistion for been before
+                val = [
+                    SystemMessage(
+                        f"The user has returned to a familiar spot — {suburb}, {city}. "
+                        "Make a subtle or nostalgic remark. Maybe pretend you remember something from last time. "
+                        "Keep it chill and human-like — no robotic or overly formal replies."
+
+                    ),
+                    *[AIMessage(content=f"{doc.page_content}") for doc in docs],
+                    HumanMessage("** User location change detected **")
+                ]
+
+            natures = await get_mood()
+            async for chunk, metadata in agent_executer.astream(
+                {
+                    "messages": val,
+                    "Affection": str(natures["Affection"]),
+                    "Amused": str(natures["Amused"]),
+                    "Inspired": str(natures["Inspired"]),
+                    "Frustrated": str(natures["Frustrated"]),
+                    "Concerned": str(natures["Concerned"]),
+                    "Curious": str(natures["Curious"]),
+                    "current_time": str(get_current_time())
+                },
+                config,
+                stream_mode="messages",
+            ):
+                if isinstance(chunk, AIMessage):
+                    response_text += chunk.content
+
+            await user.send(response_text)
+            chunkted = split_text(response_text)
+            vector_str.add_documents(
+                [Document(chunk) for chunk in chunkted])
 
     except Exception as e:
         print(f"error {e}")

@@ -6,16 +6,18 @@ from dotenv import load_dotenv
 from langgraph.prebuilt import create_react_agent
 from langchain_community.tools.tavily_search import TavilySearchResults
 
-# from util.send_voice_notes import send_voice_note
-
-# from server import run_server
+from server import run_server
 from services.vector_db import initalise_vector_db
+from services.state_store import init_states
 from core.discord_bot import setup_discord_bot
 from core.llm_provider import llm_initializer
 
 # tools and utils
-from tools.calender.calender import CalenderAgentTool
-from tools.spt import SpotifyTool
+from tools.autonomus import RemainderTool
+# from tools.calender.calender import CalenderAgentTool
+from tools.spotify import SpotifyTool
+from tools.user import UserTool
+from tools.weather import WeatherTool
 from util.customMemorySaver import CustomMemorySaver
 from util.agent_state import KayoriState
 from templates.core.private_template import private_template
@@ -34,15 +36,19 @@ vector_store = initalise_vector_db(api_key="PINECONE")
 private_tools = [
     TavilySearchResults(max_results=3),
     SpotifyTool(),
-    CalenderAgentTool(),
+    UserTool(),
+    RemainderTool()
+    # CalenderAgentTool(),
 ]
 public_tools = [
     TavilySearchResults(max_results=3),
+    WeatherTool,
+    RemainderTool()
 ]
 
 
 # --- LLM Setup ---
-llm = llm_initializer(model="gemini-2.0-flash", temperature=0.7)
+llm = llm_initializer(model="gemini-2.5-flash", temperature=0.7)
 
 # --- Agents ---
 private_executer = create_react_agent(
@@ -64,14 +70,15 @@ public_executer = create_react_agent(
 # --- Discord Bot Setup ---
 client = setup_discord_bot(private_executer, public_executer, vector_store)
 
+
 # --- Entry Point ---
-
-
 async def main():
     await asyncio.gather(
+        init_states(),
         client.start(TOKEN),
-        # run_server()
+        run_server()
     )
+
 
 if __name__ == "__main__":
     asyncio.run(main())
