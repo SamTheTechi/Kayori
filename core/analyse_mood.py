@@ -2,7 +2,7 @@ import toml
 import random
 from typing import Dict
 from templates.mood import mood_template
-from core.llm_provider import llm_initializer
+from util.llm_provider import llm_initializer
 from pydantic import BaseModel, confloat
 from services.state_store import get_mood, set_mood
 
@@ -89,7 +89,7 @@ async def update(target: Dict[str, float], current: Dict[str, float]):
     await set_mood(**current)
 
 
-async def analyseMood(content: str) -> str:
+async def analyse_mood(content: str) -> str:
     prompt = await (mood_template | llm).ainvoke({"user": content})
     parsed_mood = parse(prompt.content, await get_mood())
     if not parsed_mood:

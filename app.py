@@ -10,7 +10,6 @@ from server import run_server
 from services.vector_db import initalise_vector_db
 from services.state_store import init_states
 from core.discord_bot import setup_discord_bot
-from core.llm_provider import llm_initializer
 
 # tools and utils
 from tools.autonomus import RemainderTool
@@ -18,7 +17,8 @@ from tools.autonomus import RemainderTool
 from tools.spotify import SpotifyTool
 from tools.user import UserTool
 from tools.weather import WeatherTool
-from util.customMemorySaver import CustomMemorySaver
+from util.llm_provider import llm_initializer
+from util.custom_memory_saver import CustomMemorySaver
 from util.agent_state import KayoriState
 from templates.core.private_template import private_template
 from templates.core.public_template import public_template
@@ -37,13 +37,13 @@ private_tools = [
     TavilySearchResults(max_results=3),
     SpotifyTool(),
     UserTool(),
-    RemainderTool()
+    RemainderTool(userId=None)
     # CalenderAgentTool(),
 ]
 public_tools = [
     TavilySearchResults(max_results=3),
     WeatherTool,
-    RemainderTool()
+    RemainderTool(userId=None)
 ]
 
 

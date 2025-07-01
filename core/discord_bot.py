@@ -2,12 +2,14 @@ import os
 import discord
 import json
 import asyncio
+
 from services.redis_db import redis_client, MESSAGE_QUEUE, MESSAGE_SET
 from dotenv import load_dotenv
 
 # Internal core modules
 from core.scheduler import setup_scheduler
 from core.message_handler import message_handler
+from core.presence_handler import PresenceHandler
 
 load_dotenv()
 USER_ID = int(os.getenv("USER_ID"))
@@ -20,6 +22,7 @@ client = discord.Client(intents=intents)
 
 # Sets up and configures the Discord bot client.
 def setup_discord_bot(private_executer, public_executer, vector_store):
+    presence_handler = PresenceHandler(client)
 
     @client.event
     async def on_ready():
@@ -38,6 +41,10 @@ def setup_discord_bot(private_executer, public_executer, vector_store):
                 )
             )
 
+            # Start the presence handler
+            asyncio.create_task(presence_handler.start_monitor())
+
+            await client.change_presence(status=discord.Status.online)
             print(f"Kayori is online as {client.user}")
         except Exception as e:
             print(f"error: {e}")
@@ -55,6 +62,7 @@ def setup_discord_bot(private_executer, public_executer, vector_store):
                 return
 
         try:
+            # Change presence back to online if idle
 
             # Prepare message payload to be processed asynchronously
             payload = {
@@ -67,6 +75,9 @@ def setup_discord_bot(private_executer, public_executer, vector_store):
 
             # Push the message payload into Redis queue for async handling
             await redis_client.lpush(MESSAGE_QUEUE, json.dumps(payload))
+
+            # updates the bot's discord presence to online if she's idle
+            await presence_handler.update_presence()
 
             # Push the author+channel to count the number of acitive user in server and reply accondely
             if not (isinstance(message.channel, discord.DMChannel)):

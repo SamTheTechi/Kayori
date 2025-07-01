@@ -1,17 +1,18 @@
 import json
 from datetime import datetime, timedelta, timezone
 from services.redis_db import redis_client, MESSAGE_QUEUE, MESSAGE_SET
+from langchain_core.documents import Document
 from langchain_core.messages import HumanMessage, AIMessage, SystemMessage
-from util.mood import analyseMood
+from core.analyse_mood import analyse_mood
+from util.stream_and_handle_response import stream_and_handle_response
+from util.chunker import split_text
 from util.get_current_time import get_current_time
 from services.state_store import get_mood
 
 
-# Handles incoming messages from Discord.
 async def message_handler(client, private_executer, public_executer, vector_store, USER_ID):
     while True:
         try:
-
             # Wait for a new message payload from Redis queue
             raw_data = await redis_client.brpop(MESSAGE_QUEUE)
             if not raw_data:
@@ -21,201 +22,152 @@ async def message_handler(client, private_executer, public_executer, vector_stor
             data = json.loads(raw_message)
 
             # Extract message metadata
-            message_id = data.get("message_id")
-            channel_id = data.get("channel_id")
             author_id = data.get("author_id")
-            content = data.get("content", "")
             is_dm = data.get("is_dm", False)
 
             # Fetch Discord objects
-            channel = await client.fetch_channel(channel_id)
             author = await client.fetch_user(author_id)
-            original_message = await channel.fetch_message(message_id)
             target_user = await client.fetch_user(USER_ID)
-            # Setup for response building
-            user_input = content
-            final_text = ""
-            response_text = ""
-            tool_called = False
 
-            thread_id = str(channel_id) if not is_dm else str(USER_ID)
-            config = {"configurable": {"thread_id": thread_id}}
-
-            # Handle DM from target user
             if is_dm and target_user == author:
-                await author.typing()
-
-                # Semantic vector context search
-                docs = vector_store.similarity_search(query=user_input, k=2)
-
-                # Build system and memory context for the model
-                context = [
-                    SystemMessage(content="Here is relevant context from previous interactions to help you respond accurately"),
-                    *[AIMessage(content=f"{doc.page_content}") for doc in docs]
-                ]
-                val = context + [HumanMessage(user_input)]
-
-                # Analyze user's tone and react
-                reaction = await analyseMood(user_input)
-                if reaction.strip():
-                    await original_message.add_reaction(reaction)
-
-                # Current mood values
-                natures = await get_mood()
-
-                # Stream model response
-                print(author_id)
-                async for chunk in private_executer.astream(
-                    {
-                        "messages": val,
-                        "Affection": str(natures["Affection"]),
-                        "Amused": str(natures["Amused"]),
-                        "Inspired": str(natures["Inspired"]),
-                        "Frustrated": str(natures["Frustrated"]),
-                        "Concerned": str(natures["Concerned"]),
-                        "Curious": str(natures["Curious"]),
-                        "current_time": str(get_current_time())
-                    },
-                    config,
-                    stream_mode="updates",
-                ):
-                    if 'agent' in chunk:
-                        messages = chunk['agent'].get('messages', [])
-                        for msg in messages:
-                            if isinstance(msg, AIMessage):
-                                if msg.content:
-                                    response_text += msg.content
-
-                                # Send reply if a tool is about to be called
-                                if msg.tool_calls and not tool_called:
-                                    print("tool called")
-                                    tool_called = True
-                                    if response_text.strip():
-                                        await author.send(response_text)
-                                        final_text += response_text
-                                        response_text = ""
-
-                # Send any remaining response
-                if response_text.strip():
-                    await author.send(response_text)
-                    final_text += response_text
-
-                if final_text.strip() and not tool_called:
-                    print("handled user")
-
-                # chunkted = split_text(final_text)
-                # vector_store.add_documents([Documents(chunk) for chunk in chunkted])
-
-            # ----------- Handle Public Messages -----------
+                await handle_direct_message(client, private_executer, vector_store, data)
             else:
-                active_user_count = await redis_client.scard(MESSAGE_SET)
-                await channel.typing()
-
-                # Retrieve others execluding user and kayori last chats messages in group chat
-                chat_history = []
-                skip_first = True
-
-                # This is to determine the time range in which we'll select the messages
-                cutoff_time = datetime.now(timezone.utc) - timedelta(minutes=30)
-
-                async for msg in channel.history(limit=15, oldest_first=False):
-
-                    # removing the msg which triggerd the kayori
-                    if skip_first:
-                        skip_first = False
-                        continue
-
-                    if msg.created_at < cutoff_time:
-                        continue
-
-                    if msg.content and len(msg.content.strip()) > 3 and not msg.content.strip().startswith(("/", "!")):
-                        if msg.author.id == USER_ID:
-                            # Message from Kayori (your bot)
-                            chat_history.append(AIMessage(content=f'{msg.content}'))
-                        else:
-                            # Message from a user
-                            chat_history.append(HumanMessage(
-                                content=msg.content.strip(),
-                                name=msg.author.display_name.lower().replace(" ", "_"),
-                                additional_kwargs={"role": f"{msg.author.display_name}", "source": "past conversation"})
-                            )
-
-                # Retrieve relevant past context from her memory (vector_store)
-                docs = vector_store.similarity_search(query=user_input, k=2)
-                chat_history.reverse()
-
-                context = [
-                    SystemMessage(content="Relevant memories with sam retrieved from earlier interactions"),
-                    *[AIMessage(content=f"{doc.page_content}") for doc in docs],
-
-                    SystemMessage(content="Here is the current group conversation"),
-                    *chat_history,
-
-                    HumanMessage(
-                        content=user_input,
-                        additional_kwargs={
-                            "role": msg.author.display_name,
-                            "source": "live_input"
-                        }
-                    )
-                ]
-
-                # React to message based on tone
-                reaction = await analyseMood(user_input)
-                if reaction.strip():
-                    await original_message.add_reaction(reaction)
-
-                # Current mood values
-                natures = await get_mood()
-
-                # Stream response from public LLM agent
-                async for chunk in public_executer.astream(
-                    {
-                        "messages": context,
-                        "Affection": str(natures["Affection"]),
-                        "Amused": str(natures["Amused"]),
-                        "Inspired": str(natures["Inspired"]),
-                        "Frustrated": str(natures["Frustrated"]),
-                        "Concerned": str(natures["Concerned"]),
-                        "Curious": str(natures["Curious"]),
-                        "replying_to": str(author.display_name),
-                        "current_time": str(get_current_time())
-                    },
-                    config,
-                    stream_mode="updates",
-                ):
-                    if 'agent' in chunk:
-                        messages = chunk['agent'].get('messages', [])
-                        for msg in messages:
-                            if isinstance(msg, AIMessage):
-                                if msg.content:
-                                    response_text += msg.content
-
-                                # Send message early if tool is triggered
-                                if msg.tool_calls and not tool_called:
-                                    print("tool called")
-                                    tool_called = True
-
-                                    if response_text.strip():
-                                        if active_user_count > 1:
-                                            await original_message.reply(response_text, mention_author=True)
-                                        else:
-                                            await channel.send(response_text)
-                                        final_text += response_text
-                                        response_text = ""
-
-                # Send final remaining reply if any
-                if response_text.strip():
-                    if active_user_count > 1:
-                        await original_message.reply(response_text, mention_author=True)
-                    else:
-                        await channel.send(response_text)
-
-                    final_text += response_text
-                    print("server user")
-
-                # removes item to set
-                await redis_client.srem(MESSAGE_SET, f"{author_id}:{channel_id}")
+                await handle_server_message(client, public_executer, vector_store, data)
 
         except Exception as e:
             print(f"error: {e}")
+
+
+async def handle_direct_message(client, executer, vector_store, data):
+    user_input = data.get("content", "")
+    thread_id = str(data.get("channel_id"))
+    config = {"configurable": {"thread_id": thread_id}}
+
+    message_id = data.get("message_id")
+    channel_id = data.get("channel_id")
+    author_id = data.get("author_id")
+
+    channel = await client.fetch_channel(channel_id)
+    author = await client.fetch_user(author_id)
+    original_message = await channel.fetch_message(message_id)
+
+    await author.typing()
+
+    docs = vector_store.similarity_search(query=user_input, k=2)
+
+    context = [
+        SystemMessage(content="Here is relevant context from previous interactions to help you respond accurately"),
+        *[AIMessage(content=f"{doc.page_content}") for doc in docs]
+    ]
+    val = context + [HumanMessage(user_input)]
+
+    reaction = await analyse_mood(user_input)
+    if reaction.strip():
+        await original_message.add_reaction(reaction)
+
+    natures = await get_mood()
+    llm_payload = {
+        "messages": val,
+        "Affection": str(natures["Affection"]),
+        "Amused": str(natures["Amused"]),
+        "Inspired": str(natures["Inspired"]),
+        "Frustrated": str(natures["Frustrated"]),
+        "Concerned": str(natures["Concerned"]),
+        "Curious": str(natures["Curious"]),
+        "current_time": str(get_current_time())
+    }
+
+    final_text = await stream_and_handle_response(executer, llm_payload, config, author)
+
+    if final_text.strip():
+        chunkted = split_text(final_text)
+        vector_store.add_documents([Document(chunk) for chunk in chunkted])
+
+
+async def handle_server_message(client, executer, vector_store, data):
+    active_user_count = await redis_client.scard(MESSAGE_SET)
+
+    thread_id = str(data.get("channel_id"))
+    config = {"configurable": {"thread_id": thread_id}}
+
+    message_id = data.get("message_id")
+    channel_id = data.get("channel_id")
+    author_id = data.get("author_id")
+    user_input = data.get("content", "")
+
+    channel = await client.fetch_channel(channel_id)
+    author = await client.fetch_user(author_id)
+    original_message = await channel.fetch_message(message_id)
+
+    await channel.typing()
+
+    chat_history = await get_chat_history(channel, client.user.id)
+
+    # Retrieve relevant past context from her memory (vector_store)
+    docs = vector_store.similarity_search(query=user_input, k=2)
+    chat_history.reverse()
+
+    context = [
+        SystemMessage(content="Relevant memories with sam retrieved from earlier interactions"),
+        *[AIMessage(content=f"{doc.page_content}") for doc in docs],
+        SystemMessage(content="Here is the current group conversation"),
+        *chat_history,
+        HumanMessage(
+            content=user_input,
+            additional_kwargs={
+                "role": author.display_name,
+                "source": "live_input"
+            }
+        )
+    ]
+
+    # React to message based on tone
+    reaction = await analyse_mood(user_input)
+    if reaction.strip():
+        await original_message.add_reaction(reaction)
+
+    # Current mood values
+    natures = await get_mood()
+    llm_payload = {
+        "messages": context,
+        "Affection": str(natures["Affection"]),
+        "Amused": str(natures["Amused"]),
+        "Inspired": str(natures["Inspired"]),
+        "Frustrated": str(natures["Frustrated"]),
+        "Concerned": str(natures["Concerned"]),
+        "Curious": str(natures["Curious"]),
+        "replying_to": str(author.display_name),
+        "current_time": str(get_current_time())
+    }
+
+    await stream_and_handle_response(executer, llm_payload, config, original_message, reply=active_user_count > 1)
+
+    # removes item to set
+    await redis_client.srem(MESSAGE_SET, f"{data.get('author_id')}:{data.get('channel_id')}")
+
+
+async def get_chat_history(channel, bot_id):
+    chat_history = []
+    skip_first = True
+
+    cutoff_time = datetime.now(timezone.utc) - timedelta(minutes=30)
+
+    async for msg in channel.history(limit=15, oldest_first=False):
+
+        if skip_first:
+            skip_first = False
+            continue
+
+        if msg.created_at < cutoff_time:
+            continue
+
+        if msg.content and len(msg.content.strip()) > 3 and not msg.content.strip().startswith(("/", "!")):
+            if msg.author.id == bot_id:
+                chat_history.append(AIMessage(content=f'{msg.content}'))
+            else:
+                chat_history.append(HumanMessage(
+                    content=msg.content.strip(),
+                    name=msg.author.display_name.lower().replace(" ", "_"),
+                    additional_kwargs={"role": f"{msg.author.display_name}", "source": "past conversation"})
+                )
+    return chat_history

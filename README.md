@@ -20,13 +20,16 @@ Kayori is more than just a chatbot; she's an ambient, proactive companion design
 
 ## Core Features
 
-### 1. A Dynamic & Evolving Heart
+### 1. A Dynamic &  Heart
 Kayori's personality isn't static. It's governed by a sophisticated mood engine to simulate a genuine emotional connection:
 -   **Six Core Emotions:** Her state is defined by six values (Affection, Amused, Inspired, Frustrated, Concerned, Curious) that fluctuate between -1.0 and 1.0.
+
 -   **Reactive Shifts:** She listens to you, adjusting her mood in real-time to make conversations feel more natural and empathetic.
+
 -   **Mood Drift & Spikes:** To feel more human, her emotions have their own rhythm:
     -   **Mood Drift:** Gently nudges her emotions back toward a neutral baseline, simulating the natural fading of feelings over time.
     -   **Mood Spikes:** Periodically introduces small, random emotional fluctuations, making her feel less predictable and more alive.
+
 -   **Configurable Personality:** The `config.toml` file lets you fine-tune her emotional sensitivity, deciding how she handles conflicting (e.g., Affection vs. Frustration) and reinforcing (e.g., Inspired + Curious) emotions.
 
 ### 2. Proactive & Spontaneous Actions

@@ -1,5 +1,4 @@
 import os
-import discord
 from langchain_core.messages import (
     SystemMessage,
     AIMessage,
@@ -46,8 +45,6 @@ async def good_morning(client, agent_executer, config):
         print("morning wished")
         await user.send(response_text)
 
-        await client.change_presence(status=discord.Status.online)
-
     except Exception as e:
         print(f"error while evening greeting {e}")
 
@@ -88,8 +85,6 @@ async def good_evening(client, agent_executer, config):
         print("evening wished")
 
         await user.send(response_text)
-
-        await client.change_presence(status=discord.Status.idle)
 
     except Exception as e:
         print(f"error while morning greeting {e}")

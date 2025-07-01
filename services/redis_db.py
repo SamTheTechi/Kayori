@@ -9,6 +9,8 @@ PINNED_LOCATION = "state_pinned_location"
 NATURE = "state_nature"
 LAST_REPONSE = "state_lastresponse"
 PREVIOUS_QUEUE = "state_queue"
+BOT_PRESENCE = "state_presence"
+BOT_LAST_ACTIVITY = "state_last_activity"
 
 
 # API_KEY = os.getenv("REDIS_URL")

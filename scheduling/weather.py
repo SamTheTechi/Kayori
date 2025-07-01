@@ -5,7 +5,7 @@ from langchain_core.messages import (
     AIMessage,
     HumanMessage
 )
-from core.llm_provider import llm_initializer
+from util.llm_provider import llm_initializer
 from util.geo_utli import get_forcast_weather
 from templates.weather import weather_template
 from services.state_store import get_live_location, get_mood

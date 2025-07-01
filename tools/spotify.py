@@ -114,15 +114,15 @@ class SpotifyTool(BaseTool):
     # Plays a random track from recently played or queue.
     def _play_random(self) -> str:
         try:
-            tracks = self._sp.current_user_top_tracks(limit=20, time_range="short_term")
+            tracks_object = self._sp.current_user_top_tracks(limit=20, time_range="short_term")
+            tracks = tracks_object['items']
+            tracks_to_play = random.sample(tracks, 3)
+            uris = [track["uri"] for track in tracks_to_play]
 
-            track = random.choice(tracks)
-            uri = track["uri"]
-
-            self._sp.add_to_queue(uri=uri)
+            self._sp.add_to_queue(uri=uris)
             self._sp.next_track()
 
-            return f"Playing: {track['name']} by {', '.join(artist['name'] for artist in track['artists'])} 🎵"
+            return f"Playing: {tracks_to_play[0]['name']}"
         except Exception as e:
             return f"Error playing a song: {e}"
 

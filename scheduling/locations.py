@@ -12,7 +12,7 @@ from langchain_core.messages import (
 )
 from langchain_core.documents import Document
 from util.chunker import split_text
-from util.document import location_constructor
+from util.document_constructor import location_constructor
 from services.state_store import get_mood, get_live_location, get_pinned_location, set_pinned_location
 from util.geo_utli import get_current_location
 
@@ -45,10 +45,15 @@ async def can_trigger(radius: int) -> bool:
 async def process_location(threshold=0.85, days=15):
 
     live = await get_live_location()
+    if not live:
+        return (False, False, "Unknown", "Unknown")
+
     lat = live["latitude"]
     lon = live["longitude"]
 
     user_location = get_current_location(lat, lon)
+    if not user_location:
+        return (False, False, "Unknown", "Unknown")
 
     suburb = user_location.get("suburb", "Unknown")
     city = user_location.get("city", "Unknown")
@@ -63,18 +68,26 @@ async def process_location(threshold=0.85, days=15):
         # not a new location, been to this place before
         if score >= threshold:
 
+            time_format = '%Y-%m-%d %H:%M'
+            current_time_str = datetime.now(pytz.utc).astimezone(pytz.timezone("Asia/Kolkata")).strftime(time_format)
+            last_time_str = document.metadata["time"]
+
+            current_time = datetime.strptime(current_time_str, time_format)
+            last_time = datetime.strptime(last_time_str, time_format)
+
             # check for the time ellipsis
-            current_time = datetime.now(pytz.utc).astimezone(pytz.timezone("Asia/Kolkata")).isoformat()
-            last_time = document.metadata["time"]
-
-            current_timestamp = datetime.fromisoformat(current_time)
-            last_timestamp = datetime.fromisoformat(last_time)
-
             time_difference = abs(
-                (current_timestamp - last_timestamp).total_seconds()) / 86400
+                (current_time - last_time).total_seconds()) / 86400
 
             # seems like enough days has passed
             if time_difference > days:
+
+                # deleating old record and adding new in place of it, so timestap get updated
+                vector_store.delete(ids=[document.metadata["ID"]])
+
+                vector_store.add_documents(
+                    [location_constructor(lat, lon, suburb, city)])
+
                 return (True, False, suburb, city)
 
             # not enought time have passed to trigger the location_change msg
@@ -88,6 +101,10 @@ async def process_location(threshold=0.85, days=15):
                 [location_constructor(lat, lon, suburb, city)])
             return (True, True, suburb, city)
 
+    vector_store.add_documents(
+        [location_constructor(lat, lon, suburb, city)])
+    return (True, True, suburb, city)
+
 
 # Handles a detected change in the user's location.
 async def location_change(client, agent_executer, config, vector_str):
@@ -95,7 +112,6 @@ async def location_change(client, agent_executer, config, vector_str):
 
         # in kilo meters, checks if users goes beyond 5km redius or not
         if await can_trigger(radius=5):
-
             user = await client.fetch_user(USER_ID)
 
             response, new_or_old, suburb, city = await process_location()

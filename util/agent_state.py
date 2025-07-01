@@ -16,3 +16,9 @@ class KayoriState(TypedDict):
     replying_to: str
     is_last_step: IsLastStep
     remaining_steps: RemainingSteps
+
+
+IDLE = "idle"
+ONLINE = "online"
+OFFLINE = "offline"
+DND = "donotdisturbe"

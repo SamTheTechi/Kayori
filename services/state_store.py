@@ -1,9 +1,13 @@
+import time
+from util.agent_state import ONLINE
 from services.redis_db import (
     redis_client,
     LIVE_LOCATION,
     PINNED_LOCATION,
     LAST_REPONSE,
     NATURE,
+    BOT_PRESENCE,
+    BOT_LAST_ACTIVITY
 )
 
 
@@ -12,7 +16,6 @@ async def set_live_location(latitude: float, longitude: float, timestamp: float)
     await redis_client.hset(LIVE_LOCATION, mapping={
         "latitude": latitude,
         "longitude": longitude,
-        "timestamp":  timestamp
     })
 
 
@@ -21,7 +24,6 @@ async def set_pinned_location():
     await redis_client.hset(PINNED_LOCATION, mapping={
         "latitude": location["latitude"],
         "longitude": location["longitude"],
-        "timestamp":  location["timestamp"]
     })
 
 
@@ -50,7 +52,7 @@ async def get_mood():
 
 
 # last time when user replied
-async def set_last_response(time: float):
+async def set_last_response(time: str):
     await redis_client.hset(LAST_REPONSE, time)
 
 
@@ -99,10 +101,20 @@ async def init_last_response():
         })
 
 
+async def init_other_states():
+    exists_presence = await redis_client.get(BOT_PRESENCE)
+    if not exists_presence:
+        await redis_client.set(BOT_PRESENCE, ONLINE)
+    exists_last_activitey = await redis_client.get(BOT_LAST_ACTIVITY)
+    if not exists_last_activitey:
+        await redis_client.set(BOT_LAST_ACTIVITY, str(time.time()))
+
+
 async def init_states():
     await init_location()
     await init_mood()
     await init_last_response()
+    await init_other_states()
 
 
 # previous response context

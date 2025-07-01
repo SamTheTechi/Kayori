@@ -1,5 +1,7 @@
 import os
 import requests
+from services.state_store import get_live_location
+from util.geo_utli import get_current_location
 from dotenv import load_dotenv
 from langchain_core.tools import BaseTool
 from typing import Literal, Optional
@@ -61,16 +63,27 @@ class UserTool(BaseTool):
         except Exception as e:
             print(e)
 
-    def _run(self, command: Literal["toggle_flashlight", "find_phone", "speak_to_user"], content: Optional[str] = None) -> str:
+    def _user_location(self):
+        try:
+            coordinates = get_live_location()
+            suburb, city, state = get_current_location(coordinates["latitude"], coordinates["longitude"])
+            return f"User seems to be in {suburb} {city} {state}"
+        except Exception as e:
+            print(e)
+            return "seems like i can't locate users locations"
+
+    def _run(self, command: Literal["toggle_flashlight", "find_phone", "speak_to_user", "user_location"], content: Optional[str] = None) -> str:
         command = command.lower().strip()
 
         if command in ["toggle_flashlight"]:
             return self._toggle_flashlight()
         elif command in ["find_phone"]:
             return self._find_my_phone()
+        elif command in ["user_location"]:
+            return self._user_location()
         elif command in ["speak_to_user"]:
             if content is None:
                 return "you need to provide content to speak to user"
             return self._speak_to_user(str(content))
         else:
-            return f"Command '{command}' not recognized. Available commands: toggle_flashlight, find_phone, speak_to_user."
+            return f"Command '{command}' not recognized. Available commands: toggle_flashlight, find_phone, user_location, speak_to_user."
