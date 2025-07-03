@@ -10,7 +10,7 @@ spotipy
 toml
 youtube_transcript_api
 firebase_admin
-uvicorn
+uvicorn[standard]
 fastapi
 dotenv
 redis

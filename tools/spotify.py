@@ -13,10 +13,10 @@ load_dotenv()
 class SpotifyTool(BaseTool):
     name: str = "spotify_controller"
     description: str = (
-        "A tool for controlling the user's Spotify playback. "
+        "A tool for controlling the user's Spotify playback."
         "Supports commands to play/pause music (start music), skip tracks, go to the previous track, "
-        "get currently playing track information, adjust volume, toggle shuffle, and "
-        "queue a random track from recent plays or the queue."
+        "get currently playing track information, adjust volume, toggle shuffle and play_random"
+        "prefer using play_random when ever use ask for music insted of play_pause."
     )
     _sp: spotipy.Spotify = PrivateAttr()
     JOIN_DEVICE_ID: Optional[str] = os.getenv("JOIN_DEVICE_ID")
@@ -114,12 +114,15 @@ class SpotifyTool(BaseTool):
     # Plays a random track from recently played or queue.
     def _play_random(self) -> str:
         try:
-            tracks_object = self._sp.current_user_top_tracks(limit=20, time_range="short_term")
+            # 21, don't ask me why 21
+            tracks_object = self._sp.current_user_top_tracks(limit=21, time_range="short_term")
             tracks = tracks_object['items']
             tracks_to_play = random.sample(tracks, 3)
             uris = [track["uri"] for track in tracks_to_play]
 
-            self._sp.add_to_queue(uri=uris)
+            for uri in uris:
+                self._sp.add_to_queue(uri=uri)
+
             self._sp.next_track()
 
             return f"Playing: {tracks_to_play[0]['name']}"

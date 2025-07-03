@@ -1,11 +1,17 @@
 import os
-import requests
+import aiohttp
 from services.state_store import get_live_location
-from util.geo_utli import get_current_location
+from util.geo_utli import aget_current_location
 from dotenv import load_dotenv
 from langchain_core.tools import BaseTool
-from typing import Literal, Optional
+from typing import Literal, Optional, Type
+from pydantic import BaseModel
 load_dotenv()
+
+
+class UserToolArgs(BaseModel):
+    command: Literal["toggle_flashlight", "find_phone", "speak_to_user", "user_location"]
+    content: Optional[str] = None
 
 
 # A tool for controlling the user's phone with predefined commands.
@@ -25,65 +31,81 @@ class UserTool(BaseTool):
         "https://joinjoaomgcd.appspot.com/_ah/api/messaging/v1/sendPush"
         f"?apikey={JOIN_API_KEY}"
         f"&deviceId={JOIN_DEVICE_ID}"f"&text=")
+    args_schema: Type[BaseModel] = UserToolArgs
 
     # Toggles the device's flashlight.
-    def _toggle_flashlight(self):
+
+    async def _toggle_flashlight(self):
         try:
-            response = requests.get(f"{self.BASE_URL}flash_command")
-            if response.status_code == 200:
-                return "flash light toggled"
-            else:
-                return "Can't toggle users flash light"
+            async with aiohttp.ClientSession() as client:
+                response = await client.get(f"{self.BASE_URL}flash_command")
+                if response.status == 200:
+                    return "flash light toggled"
+                else:
+                    return "Can't toggle users flash light"
 
         except Exception as e:
             print(e)
 
     # Triggers the device to play a sound to help locate it.
-    def _find_my_phone(self):
+    async def _find_my_phone(self):
         try:
-            response = requests.get(f"{self.BASE_URL}fmp_command")
-            if response.status_code == 200:
-                return "ringed your phone"
-            else:
-                return "Can't locate users phone"
+            async with aiohttp.ClientSession() as client:
+                response = await client.get(f"{self.BASE_URL}fmp_command")
+                if response.status == 200:
+                    return "ringed your phone"
+                else:
+                    return "Can't locate users phone"
 
         except Exception as e:
             print(e)
 
-    def _speak_to_user(self, content: str):
+    async def _speak_to_user(self, content: str):
         try:
-            response = requests.get(f"{self.BASE_URL}say={content}")
-
-            if response.status_code == 200:
-                return "said what i wanted to say!"
-            else:
-                print("sucks")
-                return "seems like some issue, fallback to sending test"
+            async with aiohttp.ClientSession() as client:
+                response = await client.get(f"{self.BASE_URL}say={content}")
+                if response.status == 200:
+                    return "said what i wanted to say!"
+                else:
+                    print("sucks")
+                    return "seems like some issue, fallback to sending test"
 
         except Exception as e:
             print(e)
 
-    def _user_location(self):
+    async def _user_location(self):
         try:
-            coordinates = get_live_location()
-            suburb, city, state = get_current_location(coordinates["latitude"], coordinates["longitude"])
+            coordinates = await get_live_location()
+            respone = await aget_current_location(coordinates["latitude"], coordinates["longitude"])
+
+            suburb = respone["suburb"]
+            city = respone["city"]
+            state = respone["state"]
+
             return f"User seems to be in {suburb} {city} {state}"
         except Exception as e:
             print(e)
             return "seems like i can't locate users locations"
 
-    def _run(self, command: Literal["toggle_flashlight", "find_phone", "speak_to_user", "user_location"], content: Optional[str] = None) -> str:
+    async def _arun(
+        self,
+        command: Literal["toggle_flashlight", "find_phone", "speak_to_user", "user_location"],
+        content: Optional[str] = None
+    ) -> str:
         command = command.lower().strip()
 
         if command in ["toggle_flashlight"]:
-            return self._toggle_flashlight()
+            return await self._toggle_flashlight()
         elif command in ["find_phone"]:
-            return self._find_my_phone()
+            return await self._find_my_phone()
         elif command in ["user_location"]:
-            return self._user_location()
+            return await self._user_location()
         elif command in ["speak_to_user"]:
             if content is None:
                 return "you need to provide content to speak to user"
-            return self._speak_to_user(str(content))
+            return await self._speak_to_user(str(content))
         else:
             return f"Command '{command}' not recognized. Available commands: toggle_flashlight, find_phone, user_location, speak_to_user."
+
+    def _run(self, *args, **kwargs) -> str:
+        raise NotImplementedError("Use async version of this tool.")

@@ -51,7 +51,7 @@ class Validation(BaseModel):
     Curious: confloat(ge=-1.0, le=1.0)
 
 
-def parse(response: str, current: Dict[str, float]) -> Dict[str, float]:
+def parse(response: str) -> Dict[str, float]:
     try:
         return {tone.strip(): float(strength.strip()) for tone, strength in
                 (n.strip().split(':') for n in response.split(','))}
@@ -63,7 +63,7 @@ def parse(response: str, current: Dict[str, float]) -> Dict[str, float]:
 async def update(target: Dict[str, float], current: Dict[str, float]):
     for tone, strength in target.items():
         if tone in current:
-            multiplier = 0.1 + (config["nature"][tone] / 10)
+            multiplier = 0.1 + (config["nature"][tone] / 20)
             value = current[tone] + (strength * multiplier)
 
             # Adjust for mood conflicts
@@ -91,7 +91,7 @@ async def update(target: Dict[str, float], current: Dict[str, float]):
 
 async def analyse_mood(content: str) -> str:
     prompt = await (mood_template | llm).ainvoke({"user": content})
-    parsed_mood = parse(prompt.content, await get_mood())
+    parsed_mood = parse(prompt.content)
     if not parsed_mood:
         return ""
 
@@ -111,5 +111,5 @@ async def analyse_mood(content: str) -> str:
             return ""
 
     except Exception as e:
-        print(f"error {e}")
+        print(f"error hho {e}")
         return ""

@@ -2,7 +2,8 @@ import random
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from scheduling.weather import weather
 from scheduling.locations import location_change
-from scheduling.nature import change_pfp, mood_drift, mood_spike
+from scheduling.mood import mood_drift, mood_spike
+from scheduling.status import change_pfp, random_status
 from scheduling.greetings import good_evening, good_morning
 
 
@@ -13,10 +14,14 @@ scheduler = AsyncIOScheduler()
 def setup_scheduler(client, private_executer,  vector_store, USER_ID):
     config = {"configurable": {"thread_id": str(USER_ID)}}
 
-    # Periodic jobs
-    scheduler.add_job(change_pfp, "interval", hours=random.randint(17, 20), args=[client], misfire_grace_time=5 * 60)
+    # mood jobs
     scheduler.add_job(mood_drift, "interval", minutes=15, misfire_grace_time=1 * 60)
     scheduler.add_job(mood_spike, "interval", hours=3, misfire_grace_time=1 * 60)
+
+    # status related
+    scheduler.add_job(change_pfp, "interval", hours=random.randint(17, 20), args=[client], misfire_grace_time=5 * 60)
+    # need fixing
+    # scheduler.add_job(random_status, "interval", seconds=30, args=[client, private_executer, config], misfire_grace_time=1 * 60)
 
     # Scheduled greetings
     scheduler.add_job(

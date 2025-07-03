@@ -1,5 +1,5 @@
 import time
-from util.agent_state import ONLINE
+from util.agent_state import IDLE
 from services.redis_db import (
     redis_client,
     LIVE_LOCATION,
@@ -104,7 +104,7 @@ async def init_last_response():
 async def init_other_states():
     exists_presence = await redis_client.get(BOT_PRESENCE)
     if not exists_presence:
-        await redis_client.set(BOT_PRESENCE, ONLINE)
+        await redis_client.set(BOT_PRESENCE, IDLE)
     exists_last_activitey = await redis_client.get(BOT_LAST_ACTIVITY)
     if not exists_last_activitey:
         await redis_client.set(BOT_LAST_ACTIVITY, str(time.time()))

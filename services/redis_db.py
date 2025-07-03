@@ -1,4 +1,3 @@
-import os
 import redis.asyncio as redis
 
 # Constants for redis keys
@@ -12,10 +11,6 @@ PREVIOUS_QUEUE = "state_queue"
 BOT_PRESENCE = "state_presence"
 BOT_LAST_ACTIVITY = "state_last_activity"
 
-
-# API_KEY = os.getenv("REDIS_URL")
-# if not API_KEY:
-#     raise ValueError("Pinecode api_key not found")
 
 redis_client = redis.Redis(
     decode_responses=True,

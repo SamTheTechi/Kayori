@@ -1,10 +1,11 @@
 import os
+import aiohttp
 import requests
 from dotenv import load_dotenv
 from geopy.geocoders import Nominatim
 load_dotenv()
 
-geolocator = Nominatim(user_agent="kaori")
+geolocator = Nominatim(user_agent="kayori")
 
 WEAHTER_API_KEY = os.getenv("WEATHER_API")
 if not WEAHTER_API_KEY:
@@ -23,7 +24,32 @@ def get_current_location(lat, lon):
     return {"suburb": suburb, "city": city, "state": state}
 
 
+async def aget_current_location(lat: float, lon: float):
+    try:
+        async with aiohttp.ClientSession() as session:
+            url = "https://nominatim.openstreetmap.org/reverse"
+            params = {
+                "lat": lat,
+                "lon": lon,
+                "format": "json",
+                "addressdetails": 1
+            }
+            headers = {"User-Agent": "kayori"}
+            async with session.get(url, params=params, headers=headers) as resp:
+                if resp.status == 200:
+                    data = await resp.json()
+                    address = data.get("address", {})
+                    state = address.get('state', 'Unknown')
+                    suburb = address.get('suburb', 'Unknown')
+                    city = address.get('city', address.get('town', 'Unknown'))
+                    return {"suburb": suburb, "city": city, "state": state}
+    except Exception as e:
+        print(f"[Location API Error] {e}")
+    return {"suburb": "Unknown", "city": "Unknown", "state": "Unknown"}
+
 # Retrieves the current weather conditions for a given location.
+
+
 def get_current_weather(lat, lon):
     url = f"http://api.weatherapi.com/v1/current.json?key={
         WEAHTER_API_KEY}&q={str(lat)},{str(lon)}&aqi=no"

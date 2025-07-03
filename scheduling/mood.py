@@ -1,32 +1,5 @@
-import os
 import random
-import discord
-from dotenv import load_dotenv
 from services.state_store import get_mood, set_mood
-
-load_dotenv()
-
-TOKEN = os.getenv("DISCORD_BOT_TOKEN")
-if not TOKEN:
-    raise ValueError("discord bot token not found")
-
-
-intents = discord.Intents.default()
-client = discord.Client(intents=intents)
-
-
-# Changes the kayori's profile picture randomly.
-async def change_pfp(client):
-    try:
-        files = [f for f in os.listdir("./pfp")]
-        img_name = random.choice(files)
-        img_path = os.path.join("./pfp", img_name)
-        with open(img_path, "rb") as image:
-            pfp = image.read()
-            await client.user.edit(avatar=pfp)
-            print("pfp updated")
-    except Exception as e:
-        print(f"error: {e}")
 
 
 # Gradually stabilizes mood values towards a baseline of 0.
@@ -43,7 +16,6 @@ async def mood_drift():
 
         natures[tone] = max(-1.0, min(1.0, natures[tone]))
 
-    print("mood", natures)
     await set_mood(**natures)
 
 
@@ -59,5 +31,4 @@ async def mood_spike():
 
     natures[tone] = max(-1.0, min(1.0, natures[tone]))
 
-    print("spike", natures)
     await set_mood(**natures)

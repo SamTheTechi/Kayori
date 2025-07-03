@@ -2,12 +2,12 @@
 # Range: 0 (numb) to 10 (hypersensitive)
 
 [nature]
-Affection = 4     # affection and romantic gestures
-Amused = 5        # reactivity to jokes, playfulness
+Affection = 3     # affection and romantic gestures
+Amused = 4        # reactivity to jokes, playfulness
 Inspired = 7      # deep or philosophical topics
 Frustrated = 8    # feeling challenged or irritated
-Concerned = 6     # sensing discomfort or trouble
-Curious = 5       # curiosity in unknown or complex conversations
+Concerned = 5     # sensing discomfort or trouble
+Curious = 6       # curiosity in unknown or complex conversations
 
 # These values fine-tune how conflicting or reinforcing emotions interact.
 # They act as modifiers during mood update calculations to ensure emotional consistency.
@@ -24,4 +24,4 @@ Curious = 5       # curiosity in unknown or complex conversations
 
 [weights]
 conflict_multiplier = 8     # How much a conflicting emotion suppresses another
-reinforce_multiplier = 5    # How much a reinforcing emotion strengthens another
+reinforce_multiplier = 4    # How much a reinforcing emotion strengthens another

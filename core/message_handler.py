@@ -140,7 +140,7 @@ async def handle_server_message(client, executer, vector_store, data):
         "current_time": str(get_current_time())
     }
 
-    await stream_and_handle_response(executer, llm_payload, config, original_message, reply=active_user_count > 1)
+    await stream_and_handle_response(executer, llm_payload, config, channel, tagged=active_user_count > 1)
 
     # removes item to set
     await redis_client.srem(MESSAGE_SET, f"{data.get('author_id')}:{data.get('channel_id')}")

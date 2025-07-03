@@ -1,52 +1,77 @@
 
+import asyncio
 import uvicorn
-from pydantic import BaseModel
-from fastapi import FastAPI
-from services.state_store import set_live_location, get_live_location, get_mood
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from pydantic import BaseModel, confloat
+from util.geo_utli import aget_current_location
+from services.state_store import set_live_location, get_live_location, get_mood, set_mood
+
+app = FastAPI()
 
 
-class Validation(BaseModel):
+class LocationValidation(BaseModel):
     latitude: float
     longitude: float
     timestamp: float
 
 
-app = FastAPI()
+class MoodValidation(BaseModel):
+    Affection: confloat(ge=-1.0, le=1.0) = 0
+    Amused: confloat(ge=-1.0, le=1.0) = 0
+    Inspired: confloat(ge=-1.0, le=1.0) = 0
+    Frustrated: confloat(ge=-1.0, le=1.0) = 0
+    Concerned: confloat(ge=-1.0, le=1.0) = 0
+    Curious: confloat(ge=-1.0, le=1.0) = 0
 
 
-@app.post("/location")
-async def receive_location(data: Validation):
+# Receive and store live location.
+@app.post("/api/location")
+async def receive_location(data: LocationValidation):
     await set_live_location(data.latitude, data.longitude, data.timestamp)
-
-    print(f"Received Location: {data.dict()}")
-
-    return {"msg": "Location received!"}
+    return {"status": "success", "message": "Location received"}
 
 
-@app.get("/mood")
-async def mood():
-    return await get_mood()
-
-
-@app.get("/location")
+# Get the current human-readable location.
+@app.get("/api/location")
 async def location():
+    coordinates = await get_live_location()
+    data = await aget_current_location(coordinates["latitude"], coordinates["longitude"])
+    return data
+
+
+# Get raw latitude/longitude location data.
+@app.get("/api/locations")
+async def locations():
     return await get_live_location()
 
 
-# TODO: Implement a WebSocket endpoint for real-time mood updates.
-# @app.websocket("/ws/mood")
+# Return the current mood state.
+@app.get("/api/mood")
+async def mood_get():
+    return await get_mood()
 
-# TODO: Implement an endpoint to get location history.
-# @app.get("/locations")
 
-# TODO Implement an endpoint to manually trigger a mood spike.
-# @app.post("/mood/spike")
+@app.post("/api/mood")
+async def mood_post(data: MoodValidation):
+    await set_mood(data.dict())
+    return {"status": "success", "message": "Mood updated"}
 
-# TODO: Implement an endpoint to get the last response from Kayori.
-# @app.get("/last_response")
+
+# Stream mood values every few seconds.
+@app.websocket("/ws/mood")
+async def mood_websocket(ws: WebSocket):
+    await ws.accept()
+    try:
+        while True:
+            await asyncio.sleep(2.5)
+            mood_values = await get_mood()
+            await ws.send_json(mood_values)
+    except WebSocketDisconnect:
+        print("Client disconnected")
 
 
 async def run_server():
     config = uvicorn.Config(app=app, host="0.0.0.0", port=8080, loop="asyncio")
     server = uvicorn.Server(config)
     await server.serve()
+    # uvicorn.run("main:app", host="0.0.0.0", port=8080, reload=True)

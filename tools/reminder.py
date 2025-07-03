@@ -5,11 +5,12 @@ from core.scheduler import scheduler
 
 
 # A tool for agent herself
-class RemainderTool(BaseTool):
+class ReminderTool(BaseTool):
     def __init__(self, **data):
         super().__init__(**data)
 
-    name: str = "remainder_tool"
+    userId: str
+    name: str = "reminder_tool"
     description: str = (
         "Tool for Kayori to perform self-actions like sending reminders. "
         "Schedules a one-time reminder that sends a message to the user after a delay. "
@@ -18,20 +19,18 @@ class RemainderTool(BaseTool):
         "The 'userId' argument MUST be the Discord User ID (snowflake) of the recipient. "
     )
 
-    def _run(self, content, userId, time):
+    def _run(self, content, time):
         try:
             run_at = datetime.now() + timedelta(minutes=int(time))
 
             async def schedule_task():
-                print(userId)
-                print()
                 try:
-                    user = await client.fetch_user(userId)
+                    user = await client.fetch_user(self.userId)
                     if user:
                         await user.send(content)
 
                 except Exception as e:
-                    print("fuck this shit", e)
+                    print(f"Error sending reminder: {e}")
 
             scheduler.add_job(
                 schedule_task,

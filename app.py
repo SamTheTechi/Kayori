@@ -12,7 +12,7 @@ from services.state_store import init_states
 from core.discord_bot import setup_discord_bot
 
 # tools and utils
-from tools.autonomus import RemainderTool
+from tools.reminder import ReminderTool
 # from tools.calender.calender import CalenderAgentTool
 from tools.spotify import SpotifyTool
 from tools.user import UserTool
@@ -37,13 +37,16 @@ private_tools = [
     TavilySearchResults(max_results=3),
     SpotifyTool(),
     UserTool(),
-    RemainderTool(userId=None)
+    WeatherTool,
+    ReminderTool(userId=os.getenv("USER_ID"))
     # CalenderAgentTool(),
 ]
+
+# just hardcoding rn coz it's a pain to setup rn, and im tired as shit
 public_tools = [
     TavilySearchResults(max_results=3),
     WeatherTool,
-    RemainderTool(userId=None)
+    ReminderTool(userId="1387877964506464256")
 ]
 
 
