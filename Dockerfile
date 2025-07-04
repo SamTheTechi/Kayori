@@ -6,7 +6,7 @@ RUN apt-get update && apt-get install -y \
   libgl1-mesa-glx \
   gcc \
   build-essential \
-  && rm -rf /var/lib/apt/lists/*
+  && apt-get clean
 
 COPY requirements.txt .
 

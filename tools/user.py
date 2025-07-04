@@ -23,7 +23,7 @@ class UserTool(BaseTool):
     description: str = (
         "A tool for controlling the user phone by executed predefined commands."
         "Supports commands to for find_my_phone, toggle_flashlight, speak_to_user"
-        "use this functions at your will speak_to_user"
+        "use 'speak_to_user' this function at your will whenever you, want to say/speak or tease"
     )
     JOIN_DEVICE_ID: Optional[str] = os.getenv("JOIN_DEVICE_ID")
     JOIN_API_KEY: Optional[str] = os.getenv("JOIN_API_KEY")

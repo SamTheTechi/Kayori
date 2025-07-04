@@ -114,10 +114,10 @@ class SpotifyTool(BaseTool):
     # Plays a random track from recently played or queue.
     def _play_random(self) -> str:
         try:
-            # 21, don't ask me why 21
-            tracks_object = self._sp.current_user_top_tracks(limit=21, time_range="short_term")
+            # 24, don't ask me why 24
+            tracks_object = self._sp.current_user_top_tracks(limit=24, time_range="short_term")
             tracks = tracks_object['items']
-            tracks_to_play = random.sample(tracks, 3)
+            tracks_to_play = random.sample(tracks, 4)
             uris = [track["uri"] for track in tracks_to_play]
 
             for uri in uris:

@@ -16,7 +16,6 @@ class ReminderTool(BaseTool):
         "Schedules a one-time reminder that sends a message to the user after a delay. "
         "The 'time' argument should be specified in minutes. "
         "The 'content' should be written as if the reminder has already been delivered or the task has been completed."
-        "The 'userId' argument MUST be the Discord User ID (snowflake) of the recipient. "
     )
 
     def _run(self, content, time):
