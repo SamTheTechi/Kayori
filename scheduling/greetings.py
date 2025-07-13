@@ -17,8 +17,8 @@ async def good_morning(client, agent_executer, config):
         val = [
             SystemMessage(
                 "Start the day with a warm and cheerful 'Good morning!' Wish \
-                the user a great day ahead in a friendly and uplifting way. \
-                Keep it short, positive, and under 50 words."
+                the user a great day ahead in a friendly and uplifting way based on your\
+                previous conversation. Keep it short, positive, and under 50 words."
             ),
             HumanMessage("good morning!")
         ]
@@ -57,8 +57,8 @@ async def good_evening(client, agent_executer, config):
         val = [
             SystemMessage(
                 "Greet the user with a heartfelt 'Good evening!' and then ask\
-                them how their day went in a warm and caring way. Ensure \
-                your response feels personal, friendly, and under 60 words.\
+                them how their day went based on your previous conversation. Ensure \
+                your response feels personal, friendly, and under 50 words.\
                 Avoid generic or robotic phrasing."
             ),
             HumanMessage("good evening!")
@@ -81,8 +81,6 @@ async def good_evening(client, agent_executer, config):
         ):
             if isinstance(chunk, AIMessage):
                 response_text += chunk.content
-
-        print("evening wished")
 
         await user.send(response_text)
 

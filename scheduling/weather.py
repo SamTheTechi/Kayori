@@ -32,8 +32,7 @@ async def weather(client, agent_executer, config):  # Sends a weather report to 
 
         val = [
             SystemMessage(
-                f"The Todays Weather repoat is {
-                    weather_repoat}, briefly tell the user"
+                f"The Todays Weather repoat is {weather_repoat}, briefly tell the user"
             ),
             HumanMessage("what's the weather dear")
         ]

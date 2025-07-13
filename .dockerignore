@@ -7,3 +7,5 @@ __pycache__/
 pastMemories.py
 venv/
 .env
+LICENSE
+banner.png

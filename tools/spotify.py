@@ -114,6 +114,22 @@ class SpotifyTool(BaseTool):
     # Plays a random track from recently played or queue.
     def _play_random(self) -> str:
         try:
+
+            devices = self._sp.devices()
+            active_devices = devices.get("devices", [])
+            if len(active_devices) < 1:
+                # activate users phone's spotify
+                if self.JOIN_API_KEY and self.JOIN_DEVICE_ID:
+                    url = (
+                        "https://joinjoaomgcd.appspot.com/_ah/api/messaging/v1/sendPush"
+                        f"?apikey={self.JOIN_API_KEY}"
+                        f"&deviceId={self.JOIN_DEVICE_ID}"
+                        "&text=spotify_command"
+                    )
+                    response = requests.get(url)
+                    if response.status_code != 200:
+                        return f"Failed to trigger Join push. Status: {response.status_code}"
+
             # 24, don't ask me why 24
             tracks_object = self._sp.current_user_top_tracks(limit=24, time_range="short_term")
             tracks = tracks_object['items']
