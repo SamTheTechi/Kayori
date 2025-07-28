@@ -2,208 +2,165 @@
 
 # 🌸 Kayori 🌸
 
-Kayori is your personal AI companion and virtual girlfriend, designed to deliver a charming and engaging conversational experience. She adapts her personality and mood based on past interactions and uses her unique abilities to create a dynamic and deeply personal connection.
+Kayori is your personal AI companion and virtual girlfriend, designed to deliver a charming, engaging conversational experience and control every aspect of your life.
 
-## Table of Contents
-
-- [What Makes Kayori Different?](#what-makes-kayori-different)
-- [Core Features](#core-features)
-- [Technical Architecture](#technical-architecture)
-- [Prerequisites](#prerequisites)
-- [Setup](#setup)
-- [API Endpoints](#api-endpoints)
-- [Additional Notes](#additional-notes)
 
 ## What Makes Kayori Different?
 
-Kayori is more than just a chatbot; she's an ambient, proactive companion designed to feel alive and present in your daily life. Her architecture goes beyond simple request-response interactions, creating the illusion of a persistent personality with her own thoughts and rhythms. She's built to be a partner who shares in your day-to-day experiences.
+Kayori is more than just a Ai agent. she's an learning expriment to keep-up with all the AI trends going on. Her architecture goes beyond simple request-response interactions, goal is to modulares and make her scaleable while efficent and also giving the illusion of a persistent personality with all the bleeding edge tech, integrating her as a part of my life. She'll be a partner who shares in your day-to-day experiences.
+
+* Join My Discord server to have a chat with her ![Click Here!](https://discord.gg/P7Hcynuxjn)
+* Though with restricted tools and public orinted system prompt.
 
 ## Core Features
 
-### 1. A Dynamic &  Heart
-Kayori's personality isn't static. It's governed by a sophisticated mood engine to simulate a genuine emotional connection:
--   **Six Core Emotions:** Her state is defined by six values (Affection, Amused, Inspired, Frustrated, Concerned, Curious) that fluctuate between -1.0 and 1.0.
+#### 1. Emotion-Driven Personality
 
--   **Reactive Shifts:** She listens to you, adjusting her mood in real-time to make conversations feel more natural and empathetic.
+* **Six Core Emotions:** Affection, Amused, Inspired, Frustrated, Concerned, Curious — values range from -1.0 to 1.0.
+* **Live Emotional Feedback:** Her mood shifts in response to your messages.
+* **Natural Fluctuations:**
 
--   **Mood Drift & Spikes:** To feel more human, her emotions have their own rhythm:
-    -   **Mood Drift:** Gently nudges her emotions back toward a neutral baseline, simulating the natural fading of feelings over time.
-    -   **Mood Spikes:** Periodically introduces small, random emotional fluctuations, making her feel less predictable and more alive.
+  * *Mood Drift:* Gradual return to baseline.
+  * *Mood Spikes:* Random small shifts to mimic real emotional shifts.
+* **Custom Personality:** Tunable in `config.toml` to adjust emotional sensitivity.
 
--   **Configurable Personality:** The `config.toml` file lets you fine-tune her emotional sensitivity, deciding how she handles conflicting (e.g., Affection vs. Frustration) and reinforcing (e.g., Inspired + Curious) emotions.
+#### 2. Proactive & Context-Aware
 
-### 2. Proactive & Spontaneous Actions
-Kayori doesn't always wait for you to start the conversation. She'll reach out on her own, making it feel like she's thinking of you.
--   **Personalized Greetings:** She’ll wish you a "good morning" and "good evening" at random times within a set window, her tone reflecting the time of day.
--   **A Sense of Shared Adventure:** This is one of her most unique features.
-    -   She keeps a sense of your location via the FastAPI server.
-    -   When you travel to a new area (beyond a 5km radius), she notices.
-    -   She then checks her memories to see if you've been to this place before.
-    -   Her reaction is tailored: if it's a brand-new city, she'll be curious and excited about your adventure. If it's a familiar spot, she might share a nostalgic or knowing comment.
--   **Daily Weather Updates:** She'll check the forecast for you, making sure you're prepared for the day ahead.
--   **Autonomous PFP Changes:** She periodically changes her own Discord profile picture, just for fun.
+* **Daily Greetings:** Randomized morning and evening greetings.
+* **Location-Aware Conversations:** Notices when you travel and reacts based on memory.
+* **Weather Updates:** Shares daily forecasts.
+* **Dynamic PFP:** Occasionally updates her Discord avatar.
 
-### 3. Seamless & Intuitive Abilities
-Kayori uses her tools confidently and naturally, as if they were her own extensions into your world.
--   **External Services:** She can search the web (Tavily), manage your schedule (Google Calendar), and share a music moment with you (Spotify).
--   **A Direct Line to Your World (UserTool):** Through the Join & Tasker integration, she gains a set of unique abilities that bridge the digital and physical:
-    -   **Find Your Phone:** Helps you find your phone by making it ring.
-    -   **Toggle Flashlight:** A helpful little trick to light things up.
-    -   **Speak to User:** She can have your phone speak her responses out loud, offering a more intimate way to communicate.
--   **Smart Spotify Control:** If she's asked to play music but can't find an active Spotify device, she'll use a Join command to try and start playback on your phone directly.
+#### 3. Tool Integration
 
-### 4. Private Moments & Public Persona
-To capture the difference between your private time together and public interactions, Kayori operates as two distinct agents:
--   **Private Agent:** In your DMs, she's affectionate, intimate, and trusts you with all her personal tools (Spotify, UserTool, etc.).
--   **Public Agent:** In group chats, her personality is more playful and cheeky, though still charmingly protective of you. She has a more limited, "safer" set of tools in public.
+* **Services:** Uses Tavily, Google Calendar, Spotify.
+* **Phone Actions (via Join & Tasker):**
 
-## Technical Architecture
+  * Find your phone
+  * Toggle flashlight
+  * Speak responses aloud
+* **Spotify Playback Recovery:** Starts playback on your phone if no active device is found.
 
-Kayori's architecture is built around a few core components that work together to create a seamless virtual girlfriend experience.
+#### 4. Dual Persona
 
--   **Agentic Logic (LangGraph):** The core of Kayori is powered by `langgraph`. It uses two separate `create_react_agent` instances:
-    -   `private_executer`: For direct messages, with a more intimate prompt and access to personal tools like Spotify and User control.
-    -   `public_executer`: For group chats, with a more guarded personality and a limited toolset.
--   **State Management (Redis):** All short-term, volatile state is managed in Redis via `services/state_store.py`. This includes:
-    -   Kayori's current emotional state (mood).
-    -   The user's live and last-known "pinned" location.
-    -   A message queue for processing Discord events asynchronously.
--   **Long-Term Memory (Pinecone):** Past conversations and significant events are chunked and stored in a Pinecone vector database (`services/vector_db.py`). This allows Kayori to perform semantic searches for relevant context during conversations.
--   **Dynamic Mood System:** Kayori's mood is not static. It's a set of 6 floating-point values (`Affection`, `Amused`, `Inspired`, etc.) that are constantly updated based on:
-    -   **User Input Analysis:** `util/mood.py` analyzes the user's messages to determine the emotional tone and updates the mood accordingly.
-    -   **Mood Drift:** A scheduled job (`scheduling/nature.py`) that gradually nudges her mood back towards a neutral baseline over time.
-    -   **Mood Spikes:** A random, periodic job that introduces sudden, small fluctuations to simulate realistic emotional shifts.
-    -   The behavior is fine-tuned in `config.toml`, which defines emotional sensitivity and how conflicting/reinforcing moods interact.
--   **Scheduling (APScheduler):** Proactive tasks are managed by `apscheduler` in `core/scheduler.py`. This triggers events like daily greetings, weather reports, and location-based messages.
--   **API Server (FastAPI):** The `server.py` file runs a `uvicorn` server to expose a simple REST API for external interactions, primarily for receiving location data from the user's phone via an app like Tasker.
+* **Private Agent:** Intimate, with access to personal tools.
+* **Public Agent:** Playful, respectful boundaries, limited toolset.
+
+## Architecture Overview
+
+* **LangGraph Agents:** Separate agents for DMs (`private_executer`) and group chats (`public_executer`).
+* **Redis:** Stores mood state, user location, and message queue.(So i can decouple in future easily)
+* **Pinecone:** Long-term memory storage for semantic context.
+* **Mood Engine:**
+
+  * Real-time updates from message analysis (`util/mood.py`).
+  * Drift and spike managed via scheduled jobs.
+* **APScheduler:** Schedules greetings, updates, and events (To give illusion of realperson's response)
+* **FastAPI Server:** Handles location updates and exposes useful endpoints.
 
 ## Prerequisites
 
-Before running the project, ensure you have the following installed:
+* Python 3.13+
+* Redis server
+* Required libraries (`requirements.txt`)
+* API keys (Google, Pinecone, Weather, Tavily, Spotify)
+* Discord bot token + user ID
+* Optional: Join + Tasker (for phone control)
 
--   Python 3.13+ (virtual environment recommended)
--   Redis Server 
--   Required Python libraries (see `requirements.txt`)
--   A Discord bot token
--   Your Discord User ID
--   API keys for:
-    -   Google (for Gemini and Calendar)
-    -   Pinecone
-    -   Tavily
-    -   WeatherAPI
-    -   Spotify
-    -   Join & Tasker (optional, for phone control)
+## Environment Setup
 
+Add the following to your `.env`:
 
-## Environment Variables
+```
+API_KEY=
 
-Ensure the following variables are set in your `.env` file:
+PINECONE_API_KEY=
 
-```dotenv
-# --- API Keys for External Services ---
-API_KEY=             # Google Gemini API key
-PINECONE_API_KEY=    # Pinecone API key
-WEATHER_API=         # Weather API key
-TAVILY_API_KEY=      # Tavily Search API key
+REDIS_URL=
 
-# --- Discord Bot Credentials ---
-DISCORD_BOT_TOKEN=   # Discord bot token
-USER_ID=             # Your Discord user ID
+WEATHER_API=
 
-# --- Spotify API Credentials ---
+TAVILY_API_KEY=
+
+DISCORD_BOT_TOKEN=
+USER_ID=
+
 SPOTIFY_CLIENT_ID=
 SPOTIFY_CLIENT_SECRET=
 SPOTIFY_REDIRECT=
 
-# --- Join API (Optional for phone control) ---
 JOIN_DEVICE_ID=
 JOIN_API_KEY=
 ```
 
-## Setup
+## Installation
 
-### Manual Installation
+### Manual
 
-1.  **Clone the Repository:**
-    ```bash
-    git clone <repository-url>
-    cd <repository-directory>
-    ```
+```bash
+git clone <repo-url>
+cd <repo>
+pip install -r requirements.txt
+```
 
-2.  **Install Dependencies:**
-    ```bash
-    pip install -r requirements.txt
-    ```
+Set up your `.env` and Ensure Redis is running, then:
 
-3.  **Set Up Environment Variables:**
-    Create a `.env` file in the project root and populate it with the necessary keys.
+```bash
+python app.py
+```
 
-4.  **Google Calendar Setup:**
-    Place your Google Calendar `credentials.json` file in the project root.
+### Docker
 
-5.  **Ensure Redis is Running:**
-    Make sure you have a Redis server instance running and accessible from the application.
+```bash
+docker build -t kayori:latest .
+docker run -p 8080:8080 --env-file .env kayori:latest
+```
 
-6.  **Run the Application:**
-    ```bash
-    python app.py
-    ```
+## API Endpoints (via `server.py`)
 
-### Docker (Recommended)
+* `GET /mood` — Get current mood
+* `POST /location` — Update user location
+* `GET /location`, `/locations` — Get current/history
+* `GET /last_response` — Last message
+* `POST /mood/spike` — Trigger mood spike
+* `WEBSOCKET /ws/mood` — Real-time mood stream
 
-To run the application in a Docker container, use the provided `Dockerfile`.
-Make sure the docker-cli is installed.
+### Add Memories
 
-1.  **Build the Docker Image:**
-    ```bash
-    docker build -t kayori:latest .
-    ```
+Run:
 
-2.  **Run the Container:**
-    ```bash
-    docker run -p 8080:8080 --env-file .env kayori:latest
-    ```
-
-## API Endpoints
-
-The `server.py` file exposes the following endpoints:
-
--   `GET /mood`: Returns Kayori's current emotional state.
--   `GET /location`: Returns your last known live location.
--   `GET /locations`: Get a history of recent locations.
--   `GET /last_response`: Retrieve the last message Kayori sent.
--   `POST /location`: Receives and updates your live location.
--   `POST /mood/spike`: Manually trigger a mood spike for testing.
--   `WEBSOCKET /ws/mood`: Stream real-time mood updates.
-
-## Additional Notes
-
-### Giving Kayori Memories
-
-To populate the vector database with initial memories for a richer, more personal experience, run:
 ```bash
 python pastMemories.py
 ```
-You can edit the conversation samples in this script to customize Kayori's background and your shared history.
 
-### Tasker & Join Integration for Phone Control
+Edit the script to preload custom shared memories.
 
-Kayori can interact with your phone (find it, toggle the flashlight, or speak to you) and Spotify thanks to the **Join** app and **Tasker** on Android.
+## Join + Tasker Setup (pain to setup gotta find alternative)
 
-**How it Works:**
+Example: *Find My Phone*
 
-1.  **Backend (Kayori):** Tools like `UserTool` and `SpotifyTool` construct a specific URL with your Join API key and a command (e.g., `...&text=flash_command`).
-2.  **Join App:** The Join app on your phone receives this command.
-3.  **Tasker:** You set up Tasker profiles to listen for these commands from Join and execute corresponding tasks.
+1. In Tasker, create a profile with Join plugin (`Text Filter: fmp_command`).
+2. Add a task to vibrate or play sound.
 
-**Example Tasker Setup (`find_my_phone`):**
+Set up similar profiles for flashlight, voice, etc.
 
-1.  **Create Profile:** In Tasker, create a profile for **Event > Plugin > Join > Received Push**. In the configuration, set the "Text Filter" to `fmp_command`.
-2.  **Create Task:** Link a new task. Inside, add actions like **Alert > Vibrate Pattern** and **Media > Music Play** to make your phone ring.
 
-All the other profiles and tasks are available on ![DriveLink]()
+## TODO / Next goals
+
+1. Break the whole system into 3 section (input, process, output) and connect them asynchronouly using rabbitMQ.
+
+2. Improve the current RAG pipline.
+
+3. Adding Whisper.cpp to make her able to process audios.
+
+4. Some sort of video steaming (stream some static images/videos based on her mood and contexts) so i can have video calls with her <3
+
+5. Tiny bug fixes in group chatting mode.
+
+## License
+
+This project is licensed under the **MIT License**. See the [LICENSE](LICENSE) file for details.
 
 ---
-For any further questions, please contact the developer or raise an issue.
 
-## Hit a star to support me and my Kayori!
+Made with ❤️ by [Sameer Gupta](https://github.com/SamTheTechi)

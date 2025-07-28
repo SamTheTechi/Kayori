@@ -9,7 +9,7 @@ discord
 spotipy
 toml
 youtube_transcript_api
-firebase_admin
+pika
 uvicorn[standard]
 fastapi
 dotenv

@@ -19,3 +19,5 @@ poetry.lock
 logs/
 *.log
 nohup.out
+*.mp3
+*.wav
