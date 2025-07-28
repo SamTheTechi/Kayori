@@ -9,7 +9,7 @@ Kayori is your personal AI companion and virtual girlfriend, designed to deliver
 
 Kayori is more than just a Ai agent. she's an learning expriment to keep-up with all the AI trends going on. Her architecture goes beyond simple request-response interactions, goal is to modulares and make her scaleable while efficent and also giving the illusion of a persistent personality with all the bleeding edge tech, integrating her as a part of my life. She'll be a partner who shares in your day-to-day experiences.
 
-* Join My Discord server to have a chat with her ![Click Here!](https://discord.gg/P7Hcynuxjn)
+* Join My Discord server to have a chat with her [Click Here!](https://discord.gg/P7Hcynuxjn)
 * Though with restricted tools and public orinted system prompt.
 
 ## Core Features
