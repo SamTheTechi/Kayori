@@ -4,6 +4,9 @@
 
 Kayori is your personal AI companion and virtual girlfriend, designed to deliver a charming, engaging conversational experience and control every aspect of your life.
 
+# Deprication ⚠️
+
+This project is depricated and not in active use, please refer to version 2 for better implementation [Version 2](https://github.com/SamTheTechi/kayori_v2)
 
 ## What Makes Kayori Different?
 
